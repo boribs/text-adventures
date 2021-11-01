@@ -1,3 +1,11 @@
+#include <stdio.h>
+#include <string.h>
+#include <stdbool.h>
+#include <ctype.h>
+
+#include "common.h"
+#include "parse.h"
+
 static char *trim(char *s, size_t len) {
     char tmp[len + 1];
     size_t i;
@@ -20,3 +28,12 @@ static char *trim(char *s, size_t len) {
 
     return realloc(s, (strlen(s) + 1) * sizeof(char));
 }
+
+static char *extract_line_content(char *line, size_t line_len) {
+    char *out = malloc(sizeof(char) * (line_len + 1));
+    strncpy(out, line, line_len);
+    out[line_len] = 0;
+
+    return trim(out, line_len);
+}
+
