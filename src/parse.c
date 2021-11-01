@@ -70,6 +70,29 @@ static size_t parse_id(char *str) {
     return num;
 }
 
+static bool parse_options(char *str, struct Sec *s) {
+    char *token = strtok(str, "\n");
+    size_t option_count = 0;
+    struct Opt options[MAX_OPTION_COUNT];
+
+    while (token != NULL) {
+        struct Opt op;
+        parse_option(token, &op);
+        options[option_count] = op;
+        option_count++;
+
+        token = (strtok(NULL, "\n"));
+    }
+
+    if (option_count != 0) {
+        s->options = malloc(sizeof(struct Opt) * option_count);
+        memcpy(s->options, options, sizeof(struct Opt) * option_count);
+        s->opt_count = option_count;
+    }
+
+    return true;
+}
+
 static bool parse_section(FILE *file, struct Sec *out) {
     while (!feof(file)) {
         char c = fgetc(file);
