@@ -37,6 +37,28 @@ static char *extract_line_content(char *line, size_t line_len) {
     return trim(out, line_len);
 }
 
+static char *extract_file_content(FILE *file, char delim, bool consume_delim) {
+    fgetc(file);
+    size_t char_count = 1;
+    while (!feof(file)) {
+        if (fgetc(file) == delim) {
+            fseek(file, -1, SEEK_CUR);
+            break;
+        }
+        char_count++;
+    }
+    fseek(file, -char_count, SEEK_CUR);
+
+    char *text = malloc(sizeof(char) * (char_count + 1));
+    for (size_t i = 0; i < char_count; ++i) {
+        text[i] = fgetc(file);
+    }
+    text[char_count] = 0;
+    if (consume_delim) fgetc(file);
+
+    return trim(text, char_count);
+}
+
 static size_t parse_id(char *str) {
     size_t num = 0;
 
