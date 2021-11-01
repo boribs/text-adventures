@@ -49,11 +49,27 @@ static void parse_correct_syntax_file_with_single_section() {
     TEST_ASSERT_EQUAL_STRING("Twice upon a time", a.sections[0].options[0].text);
 }
 
+static void parse_correct_syntax_file_with_two_sections() {
+    char s[] = "A\nB\nv0\n2\n\n<0> Section 0\n[ <1> option to 1\n <1> another option to 1]";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_TRUE(parse(stream, &a));
+    TEST_ASSERT_EQUAL_STRING("A", a.title);
+    TEST_ASSERT_EQUAL_STRING("B", a.author);
+    TEST_ASSERT_EQUAL_STRING("v0", a.version);
+    TEST_ASSERT_EQUAL_STRING("Section 0", a.sections[0].text);
+    TEST_ASSERT_EQUAL(2, a.sections[0].opt_count);
+    TEST_ASSERT_EQUAL(1, a.sections[0].options[0].sec_id);
+    TEST_ASSERT_EQUAL(1, a.sections[0].options[1].sec_id);
+    TEST_ASSERT_EQUAL_STRING("option to 1", a.sections[0].options[0].text);
+    TEST_ASSERT_EQUAL_STRING("another option to 1", a.sections[0].options[1].text);
+}
 
 int main() {
     UnityBegin("tests/parse_tests.c");
 
     RUN_TEST(parse_correct_syntax_file_with_single_section);
+    RUN_TEST(parse_correct_syntax_file_with_two_sections);
 
     return UnityEnd();
 }
