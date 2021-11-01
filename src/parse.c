@@ -70,6 +70,18 @@ static size_t parse_id(char *str) {
     return num;
 }
 
+bool parse_sections(FILE *file, size_t count, struct Adventure *a) {
+    struct Sec *sections = malloc(sizeof(struct Sec) * count);
+
+    for (size_t i = 0; i < count; ++i) {
+        struct Sec s;
+        parse_section(file, &s);
+        sections[s.id] = s;
+    }
+
+    a->sections = sections;
+    return true;
+}
 
 bool parse(FILE *file, struct Adventure *a) {
     size_t len;
@@ -91,3 +103,8 @@ bool parse(FILE *file, struct Adventure *a) {
     if (ptr == NULL) return false;
     ptr = extract_line_content(ptr, len);
     size_t count = strtol(ptr, &ptr, 10);
+
+    parse_sections(file, count, a);
+
+    return true;
+}

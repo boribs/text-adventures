@@ -3,6 +3,10 @@
 
 #include <stdlib.h>
 
+#define SEC_TEXT_CHAR_LIMIT 300
+#define OPT_TEXT_CHAR_LIMIT 80
+#define MAX_OPTION_COUNT 5
+
 struct Sec {
     char *text;
     size_t id;
