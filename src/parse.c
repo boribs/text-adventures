@@ -70,6 +70,25 @@ static size_t parse_id(char *str) {
     return num;
 }
 
+static bool parse_section(FILE *file, struct Sec *out) {
+    while (!feof(file)) {
+        char c = fgetc(file);
+        if (c == '<') {
+            out->id = parse_id(extract_file_content(file, '>', false));
+        } else if (c == '>') {
+            out->text = extract_file_content(file, '[', false);
+        } else if (c == '[') {
+            parse_options(extract_file_content(file, ']', true), out);
+            break;
+        } else if (c == ' ' || c == '\t' || c == '\n') {
+            ;
+        } else { // invalid character somewhere.
+            return false;
+        }
+    }
+    return true;
+}
+
 bool parse_sections(FILE *file, size_t count, struct Adventure *a) {
     struct Sec *sections = malloc(sizeof(struct Sec) * count);
 
