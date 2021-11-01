@@ -70,6 +70,25 @@ static size_t parse_id(char *str) {
     return num;
 }
 
+static bool parse_option(char *str, struct Opt *out) {
+    size_t len = strlen(str);
+    char *tmp = malloc(sizeof(char) * (len + 1));
+
+    // get sec_id
+    strcpy(tmp, str);
+    char *b = strstr(tmp, "<");
+    size_t i = strstr(tmp, ">") - b;
+    tmp[i] = 0;
+    out->sec_id = parse_id(b + 1);
+
+    // get option text
+    memset(tmp, 0, (len + 1) * sizeof(char));
+    strcpy(tmp, str + i + 1);
+    out->text = trim(tmp, strlen(tmp));
+
+    return true;
+}
+
 static bool parse_options(char *str, struct Sec *s) {
     char *token = strtok(str, "\n");
     size_t option_count = 0;
