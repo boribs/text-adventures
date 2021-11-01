@@ -18,7 +18,7 @@ static char *trim(char *s, size_t len) {
         }
     }
 
-    for (i = strlen(tmp) - 1; i > 0; --i) { // remove right spaces/newlines
+    for (i = strlen(tmp) - 1; i >= 0; --i) { // remove right spaces/newlines
         if (tmp[i] != ' ' && tmp[i] != '\n') {
             memset(s, 0, (len + 1) * sizeof(char));
             strncpy(s, tmp, i + 1);
