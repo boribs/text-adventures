@@ -37,3 +37,13 @@ static char *extract_line_content(char *line, size_t line_len) {
     return trim(out, line_len);
 }
 
+static size_t parse_id(char *str) {
+    size_t num = 0;
+
+    for (size_t i = 0; i < strlen(str); ++i) {
+        num *= 10;
+        num += str[i] - '0';
+    }
+
+    return num;
+}
