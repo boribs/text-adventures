@@ -77,13 +77,13 @@ static bool parse_option(char *str, struct Opt *out) {
     // get sec_id
     strcpy(tmp, str);
     char *b = strstr(tmp, "<");
-    size_t i = strstr(tmp, ">") - b;
-    tmp[i] = 0;
+    char *e = strstr(tmp, ">");
+    size_t j = e - tmp;
+    *e = 0;
     out->sec_id = parse_id(b + 1);
 
-    // get option text
     memset(tmp, 0, (len + 1) * sizeof(char));
-    strcpy(tmp, str + i + 1);
+    strcpy(tmp, str + j + 1);
     out->text = trim(tmp, strlen(tmp));
 
     return true;
