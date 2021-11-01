@@ -69,3 +69,25 @@ static size_t parse_id(char *str) {
 
     return num;
 }
+
+
+bool parse(FILE *file, struct Adventure *a) {
+    size_t len;
+    char *ptr;
+
+    ptr = fgetln(file, &len);
+    if (ptr == NULL) return false;
+    a->title = extract_line_content(ptr, len);
+
+    ptr = fgetln(file, &len);
+    if (ptr == NULL) return false;
+    a->author = extract_line_content(ptr, len);
+
+    ptr = fgetln(file, &len);
+    if (ptr == NULL) return false;
+    a->version = extract_line_content(ptr, len);
+
+    ptr = fgetln(file, &len);
+    if (ptr == NULL) return false;
+    ptr = extract_line_content(ptr, len);
+    size_t count = strtol(ptr, &ptr, 10);
