@@ -4,7 +4,7 @@ v1
 3
 
 <0> Section 0
-has more lines in it's text
+has more lines in its text
 [
     <1> to option 1
     <2> to option 2
