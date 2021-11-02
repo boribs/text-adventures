@@ -38,7 +38,13 @@ void show_current_section(struct Adventure *a) {
 }
 
 static void goto_section(struct Adventure *a, size_t i) {
-    a->current_section = &a->sections[a->current_section->options[i - 1].sec_id];
+    size_t id = a->current_section->options[i - 1].sec_id;
+    for (size_t i = 0; i < a->sec_count; ++i) {
+        if (a->sections[i].id == id) {
+            a->current_section = &a->sections[i];
+            break;
+        }
+    }
     show_section(a->current_section);
 }
 
