@@ -67,7 +67,7 @@ static void parse_correct_syntax_file_with_two_sections() {
     TEST_ASSERT_EQUAL_STRING("another option to 1", a.sections[0].options[1].text);
 }
 
-static void parse_text_file() {
+static void parse_text_file_1() {
     stream = fopen("tests/t1.txt", "r");
 
     TEST_ASSERT_TRUE(parse(stream, &a));
@@ -93,7 +93,12 @@ static void parse_text_file() {
     TEST_ASSERT_EQUAL(1, a.sections[2].opt_count);
     TEST_ASSERT_EQUAL_STRING("to option 1", a.sections[2].options[0].text);
     TEST_ASSERT_EQUAL(1, a.sections[2].options[0].sec_id);
+}
 
+static void parse_text_file_2_char_instead_of_number_on_4th_line() {
+    stream = fopen("tests/t2.txt", "r");
+
+    TEST_ASSERT_FALSE(parse(stream, &a));
 }
 
 int main() {
@@ -101,7 +106,8 @@ int main() {
 
     RUN_TEST(parse_correct_syntax_file_with_single_section);
     RUN_TEST(parse_correct_syntax_file_with_two_sections);
-    RUN_TEST(parse_text_file);
+    RUN_TEST(parse_text_file_1);
+    RUN_TEST(parse_text_file_2_char_instead_of_number_on_4th_line);
 
     return UnityEnd();
 }

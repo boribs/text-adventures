@@ -163,7 +163,8 @@ bool parse(FILE *file, struct Adventure *a) {
     ptr = fgetln(file, &len);
     if (ptr == NULL) return false;
     ptr = extract_line_content(ptr, len);
-    size_t count = strtol(ptr, &ptr, 10);
+    long count = strtol(ptr, &ptr, 10);
+    if (count <= 0) return false;
 
     parse_sections(file, count, a);
 
