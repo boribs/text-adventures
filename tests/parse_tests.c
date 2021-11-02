@@ -75,7 +75,7 @@ static void parse_text_file_1() {
     TEST_ASSERT_EQUAL_STRING("Cristian Gotchev", a.author);
     TEST_ASSERT_EQUAL_STRING("v1", a.version);
 
-    TEST_ASSERT_EQUAL_STRING("Section 0\nhas more lines in it's text", a.sections[0].text);
+    TEST_ASSERT_EQUAL_STRING("Section 0\nhas more lines in its text", a.sections[0].text);
     TEST_ASSERT_EQUAL(2, a.sections[0].opt_count);
     TEST_ASSERT_EQUAL_STRING("to option 1", a.sections[0].options[0].text);
     TEST_ASSERT_EQUAL(1, a.sections[0].options[0].sec_id);
