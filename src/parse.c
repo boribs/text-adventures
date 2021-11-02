@@ -145,7 +145,7 @@ static bool parse_sections(FILE *file, size_t count, struct Adventure *a) {
         struct Sec s;
 
         if (!parse_section(file, &s)) return false;
-        sections[s.id] = s;
+        sections[i] = s;
     }
 
     a->sections = sections;
