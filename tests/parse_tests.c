@@ -17,12 +17,14 @@ void setUp() {
 void tearDown() {
     if (buffer != NULL) {
         free(buffer);
-        fclose(stream);
         buffer = NULL;
-        stream = NULL;
-
-        // clear adventure
     }
+    if (stream != NULL) {
+        fclose(stream);
+        stream = NULL;
+    }
+
+    // clear adventure
 }
 
 #define S &s[0]
@@ -65,11 +67,41 @@ static void parse_correct_syntax_file_with_two_sections() {
     TEST_ASSERT_EQUAL_STRING("another option to 1", a.sections[0].options[1].text);
 }
 
+static void parse_text_file() {
+    stream = fopen("tests/t1.txt", "r");
+
+    TEST_ASSERT_TRUE(parse(stream, &a));
+    TEST_ASSERT_EQUAL_STRING("Adventure of a lifetime", a.title);
+    TEST_ASSERT_EQUAL_STRING("Cristian Gotchev", a.author);
+    TEST_ASSERT_EQUAL_STRING("v1", a.version);
+
+    TEST_ASSERT_EQUAL_STRING("Section 0\nhas more lines in it's text", a.sections[0].text);
+    TEST_ASSERT_EQUAL(2, a.sections[0].opt_count);
+    TEST_ASSERT_EQUAL_STRING("to option 1", a.sections[0].options[0].text);
+    TEST_ASSERT_EQUAL(1, a.sections[0].options[0].sec_id);
+    TEST_ASSERT_EQUAL_STRING("to option 2", a.sections[0].options[1].text);
+    TEST_ASSERT_EQUAL(2, a.sections[0].options[1].sec_id);
+
+    TEST_ASSERT_EQUAL_STRING("Section 1", a.sections[1].text);
+    TEST_ASSERT_EQUAL(2, a.sections[1].opt_count);
+    TEST_ASSERT_EQUAL_STRING("to option 2", a.sections[1].options[0].text);
+    TEST_ASSERT_EQUAL(2, a.sections[1].options[0].sec_id);
+    TEST_ASSERT_EQUAL_STRING("to option 0", a.sections[1].options[1].text);
+    TEST_ASSERT_EQUAL(0, a.sections[1].options[1].sec_id);
+
+    TEST_ASSERT_EQUAL_STRING("Section 2", a.sections[2].text);
+    TEST_ASSERT_EQUAL(1, a.sections[2].opt_count);
+    TEST_ASSERT_EQUAL_STRING("to option 1", a.sections[2].options[0].text);
+    TEST_ASSERT_EQUAL(1, a.sections[2].options[0].sec_id);
+
+}
+
 int main() {
     UnityBegin("tests/parse_tests.c");
 
     RUN_TEST(parse_correct_syntax_file_with_single_section);
     RUN_TEST(parse_correct_syntax_file_with_two_sections);
+    RUN_TEST(parse_text_file);
 
     return UnityEnd();
 }

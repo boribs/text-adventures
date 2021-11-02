@@ -1,0 +1,22 @@
+Adventure of a lifetime
+Cristian Gotchev
+v1
+3
+
+<0> Section 0
+has more lines in it's text
+[
+    <1> to option 1
+    <2> to option 2
+]
+
+<1> Section 1
+[
+    <2> to option 2
+    <0> to option 0
+]
+
+<2> Section 2
+[
+    <1> to option 1
+]
