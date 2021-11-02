@@ -24,6 +24,7 @@ struct Adventure {
     char *author;
     char *version;
     size_t sec_count;
+    struct Sec *current_section;
     struct Sec *sections;
 };
 
