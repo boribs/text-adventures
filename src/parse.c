@@ -131,7 +131,7 @@ static bool parse_section(FILE *file, struct Sec *out) {
     return true;
 }
 
-bool parse_sections(FILE *file, size_t count, struct Adventure *a) {
+static bool parse_sections(FILE *file, size_t count, struct Adventure *a) {
     struct Sec *sections = malloc(sizeof(struct Sec) * count);
 
     for (size_t i = 0; i < count; ++i) {
