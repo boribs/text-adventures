@@ -1,6 +1,6 @@
 #include <stdio.h>
-#include "../src/common.h"
-#include "../src/adventure.h"
+#include "../../src/common.h"
+#include "../../src/adventure.h"
 
 int main() {
     struct Adventure a;

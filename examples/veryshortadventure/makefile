@@ -1,5 +1,5 @@
 build:
-	@gcc ../src/*.c veryshortadventure.c -o veryshortadventure.out
+	@gcc ../../src/*.c veryshortadventure.c -o veryshortadventure.out
 
 run:
 	@./veryshortadventure.out
