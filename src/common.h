@@ -23,6 +23,7 @@ struct Adventure {
     char *title;
     char *author;
     char *version;
+    size_t sec_count;
     struct Sec *sections;
 };
 
