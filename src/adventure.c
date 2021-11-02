@@ -14,7 +14,7 @@ bool load_adventure(char *filename, struct Adventure *a) {
     return true;
 }
 
-static void show_adventure_data(struct Adventure *a) {
+void show_adventure_data(struct Adventure *a) {
     printf("%s\n", a->title);
     printf("by %s\n", a->author);
     printf("%s\n\n", a->version);
@@ -33,7 +33,7 @@ static void show_section(struct Sec *s) {
     printf("\n");
 }
 
-static void show_current_section(struct Adventure *a) {
+void show_current_section(struct Adventure *a) {
     show_section(a->current_section);
 }
 
@@ -42,7 +42,7 @@ static void goto_section(struct Adventure *a, size_t i) {
     show_section(a->current_section);
 }
 
-static bool end_of_adventure(struct Adventure *a) {
+bool end_of_adventure(struct Adventure *a) {
     return a->current_section->opt_count == 0;
 }
 
@@ -53,7 +53,7 @@ static bool is_valid_input(int input, struct Adventure *a) {
     );
 }
 
-static void get_input(struct Adventure *a) {
+void get_input(struct Adventure *a) {
     int input;
     do {
         fflush(stdin);
