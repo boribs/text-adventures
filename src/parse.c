@@ -78,6 +78,8 @@ static bool parse_option(char *str, struct Opt *out) {
     strcpy(tmp, str);
     char *b = strstr(tmp, "<");
     char *e = strstr(tmp, ">");
+    if (b == NULL || e == NULL) return false;
+
     size_t j = e - tmp;
     *e = 0;
     out->sec_id = parse_id(b + 1);
@@ -96,7 +98,7 @@ static bool parse_options(char *str, struct Sec *s) {
 
     while (token != NULL) {
         struct Opt op;
-        parse_option(token, &op);
+        if (!parse_option(token, &op)) return false;
         options[option_count] = op;
         option_count++;
 
@@ -107,6 +109,9 @@ static bool parse_options(char *str, struct Sec *s) {
         s->options = malloc(sizeof(struct Opt) * option_count);
         memcpy(s->options, options, sizeof(struct Opt) * option_count);
         s->opt_count = option_count;
+    } else {
+        s->opt_count = 0;
+        s->options = NULL;
     }
 
     return true;
@@ -115,19 +120,21 @@ static bool parse_options(char *str, struct Sec *s) {
 static bool parse_section(FILE *file, struct Sec *out) {
     while (!feof(file)) {
         char c = fgetc(file);
+
         if (c == '<') {
             out->id = parse_id(extract_file_content(file, '>', false));
         } else if (c == '>') {
             out->text = extract_file_content(file, '[', false);
         } else if (c == '[') {
-            parse_options(extract_file_content(file, ']', true), out);
+            if (!parse_options(extract_file_content(file, ']', true), out)) return false;
             break;
         } else if (c == ' ' || c == '\t' || c == '\n') {
             ;
-        } else { // invalid character somewhere.
+        } else if (c != -1) { // invalid character somewhere.
             return false;
         }
     }
+
     return true;
 }
 
@@ -136,7 +143,8 @@ static bool parse_sections(FILE *file, size_t count, struct Adventure *a) {
 
     for (size_t i = 0; i < count; ++i) {
         struct Sec s;
-        parse_section(file, &s);
+
+        if (!parse_section(file, &s)) return false;
         sections[s.id] = s;
     }
 
@@ -167,7 +175,6 @@ bool parse(FILE *file, struct Adventure *a) {
     if (count <= 0) return false;
 
     a->sec_count = count;
-    parse_sections(file, count, a);
 
-    return true;
+    return parse_sections(file, count, a);
 }

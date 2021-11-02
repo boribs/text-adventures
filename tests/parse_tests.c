@@ -101,6 +101,12 @@ static void parse_text_file_2_char_instead_of_number_on_4th_line() {
     TEST_ASSERT_FALSE(parse(stream, &a));
 }
 
+static void parse_text_file_3_with_incorrect_syntax() {
+    stream = fopen("tests/t3.txt", "r");
+
+    TEST_ASSERT_FALSE(parse(stream, &a));
+}
+
 int main() {
     UnityBegin("tests/parse_tests.c");
 
@@ -108,6 +114,7 @@ int main() {
     RUN_TEST(parse_correct_syntax_file_with_two_sections);
     RUN_TEST(parse_text_file_1);
     RUN_TEST(parse_text_file_2_char_instead_of_number_on_4th_line);
+    RUN_TEST(parse_text_file_3_with_incorrect_syntax);
 
     return UnityEnd();
 }
