@@ -173,6 +173,7 @@ enum ParseState parse(FILE *file, struct Adventure *a) {
     }
 
     if (t.ttype != TOK_EMPTY) {
+        if (t.ttype == TOK_TEXT) return P_STATE_NO_SECTIONS_IN_ADVENTURE;
 
         return P_STATE_INVALID_LAST_TOKEN; // last token should be "]", which
                                            // is handled on read
