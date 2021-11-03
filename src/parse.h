@@ -46,7 +46,6 @@ static void tok_addch(char c, struct Token *t) {
 static void tok_clear(struct Token *t) {
     t->ttype = TOK_EMPTY;
     if (t->tstr != NULL) {
-        free(t->tstr);
         t->tstr = NULL;
     }
     t->tstr_max_len = 0;
