@@ -44,13 +44,27 @@ bool parse(FILE *file, struct Adventure *a) {
             } else { return false; } // invalid syntax
 
         } else if (c == '<') {
+            if (t.ttype == TOK_TEXT) {
+                if (!add_token(tokens, &t, &token_count)) return false; // too many tokens!
+            }
 
+            if (t.ttype == TOK_EMPTY) { t.ttype = TOK_ID; }
+            else if (t.ttype == TOK_ID) { return false; } // invalid syntax
+            else { return false; } // invalid char
 
         } else if (isdigit(c)) {
-
+            if (t.ttype == TOK_EMPTY) { t.ttype = TOK_TEXT; }
+            if (t.ttype == TOK_TEXT || t.ttype == TOK_ID) { tok_addch(c, &t); }
+            else { return false; } // unreachable
 
         } else if (c == '>') {
+            if (t.ttype == TOK_TEXT) {
+                if (!add_token(tokens, &t, &token_count)) return false; // too many tokens!
+            }
 
+            if (t.ttype == TOK_ID) {
+                if (!add_token(tokens, &t, &token_count)) return false; // too many tokens!
+            } else { return false; } // invalid syntax
 
         } else if (is_valid_text_token_char(c)) {
 
