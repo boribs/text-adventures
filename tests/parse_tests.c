@@ -37,8 +37,26 @@ static void construct_file_like_obj(char *s) {
     rewind(stream);
 }
 
+static void parse_very_simple_and_short_str() {
+    char s[] = "a\nb\nc\n<1>aksdjfask[<1> opcion 1 <2> opcion 2]";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_TRUE(parse(stream, &a));
+    TEST_ASSERT_EQUAL_STRING("a", a.title);
+    TEST_ASSERT_EQUAL_STRING("b", a.author);
+    TEST_ASSERT_EQUAL_STRING("c", a.version);
+    TEST_ASSERT_EQUAL(1, a.sec_count);
+    TEST_ASSERT_EQUAL(1, a.sections[0].id);
+    TEST_ASSERT_EQUAL_STRING("aksdjfask", a.sections[0].text);
+    TEST_ASSERT_EQUAL(2, a.sections[0].opt_count);
+    TEST_ASSERT_EQUAL_STRING("opcion 1", a.sections[0].options[0].text);
+    TEST_ASSERT_EQUAL(1, a.sections[0].options[0].sec_id);
+    TEST_ASSERT_EQUAL_STRING("opcion 2", a.sections[0].options[1].text);
+    TEST_ASSERT_EQUAL(2, a.sections[0].options[1].sec_id);
+}
+
 static void parse_correct_syntax_file_with_single_section() {
-    char s[] = "    Adventure1 \nCristian Gotchev\nv0\n1\n<0> Once upon a time\n[<0> Twice upon a time]";
+    char s[] = "    Adventure1 \nCristian Gotchev\nv0\n<0> Once upon a time\n[<0> Twice upon a time]";
     construct_file_like_obj(S);
 
     TEST_ASSERT_TRUE(parse(stream, &a));
@@ -52,7 +70,7 @@ static void parse_correct_syntax_file_with_single_section() {
 }
 
 static void parse_correct_syntax_file_with_two_sections() {
-    char s[] = "A\nB\nv0\n2\n\n<0> Section 0\n[ <1> option to 1\n <1> another option to 1]";
+    char s[] = "A\nB\nv0\n\n<0> Section 0\n[ <1> option to 1\n <1> another option to 1]";
     construct_file_like_obj(S);
 
     TEST_ASSERT_TRUE(parse(stream, &a));
@@ -110,6 +128,7 @@ static void parse_text_file_3_with_incorrect_syntax() {
 int main() {
     UnityBegin("tests/parse_tests.c");
 
+    RUN_TEST(parse_very_simple_and_short_str);
     RUN_TEST(parse_correct_syntax_file_with_single_section);
     RUN_TEST(parse_correct_syntax_file_with_two_sections);
     RUN_TEST(parse_text_file_1);
