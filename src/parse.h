@@ -49,13 +49,10 @@ static void tok_clear(struct Token *t) {
     t->tstr_max_len = 0;
 }
 
-static void tok_grow_list(struct TokenList *tl) {
+static void tok_add_token(struct TokenList *tl, struct Token *t) {
     tl->count++;
     tl->list = realloc(tl->list, sizeof(struct Token) * tl->count);
-}
 
-static void tok_add_token(struct TokenList *tl, struct Token *t) {
-    tok_grow_list(tl);
     tl->list[tl->count - 1] = *t;
     tok_clear(t);
 }
