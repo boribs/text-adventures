@@ -6,7 +6,6 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define MAX_TOKENS 8
 #define TOKEN_STR_INITIAL_LEN 40
 #define TOKEN_STR_LEN_INCREMENT 100
 
@@ -22,6 +21,11 @@ struct Token {
     enum TokenType ttype;
     char *tstr;
     size_t tstr_max_len;
+};
+
+struct TokenList {
+    struct Token *list;
+    size_t count;
 };
 
 static void tok_addch(char c, struct Token *t) {
@@ -48,13 +52,15 @@ static void tok_clear(struct Token *t) {
     t->tstr_max_len = 0;
 }
 
-static bool add_token(struct Token *tokens, struct Token *t, size_t *count) {
-    if (*count == MAX_TOKENS) return false;
+static void tok_grow_list(struct TokenList *tl) {
+    tl->count++;
+    tl->list = realloc(tl->list, sizeof(struct Token) * tl->count);
+}
 
-    tokens[*count] = *t;
-    (*count)++;
+static void tok_add_token(struct TokenList *tl, struct Token *t) {
+    tok_grow_list(tl);
+    tl->list[tl->count - 1] = *t;
     tok_clear(t);
-    return true;
 }
 
 bool parse(FILE *file, struct Adventure *a);
