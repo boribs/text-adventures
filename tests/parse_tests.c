@@ -23,8 +23,6 @@ void tearDown() {
         fclose(stream);
         stream = NULL;
     }
-
-    // clear adventure
 }
 
 #define S &s[0]
@@ -41,7 +39,7 @@ static void parse_very_simple_and_short_str() {
     char s[] = "a\nb\nc\n<1>aksdjfask[<1> opcion 1 <2> opcion 2]";
     construct_file_like_obj(S);
 
-    TEST_ASSERT_TRUE(parse(stream, &a));
+    TEST_ASSERT_EQUAL(P_STATE_OK, parse(stream, &a));
     TEST_ASSERT_EQUAL_STRING("a", a.title);
     TEST_ASSERT_EQUAL_STRING("b", a.author);
     TEST_ASSERT_EQUAL_STRING("c", a.version);
@@ -59,7 +57,7 @@ static void parse_correct_syntax_file_with_single_section() {
     char s[] = "    Adventure1 \nCristian Gotchev\nv0\n<0> Once upon a time\n[<0> Twice upon a time]";
     construct_file_like_obj(S);
 
-    TEST_ASSERT_TRUE(parse(stream, &a));
+    TEST_ASSERT_EQUAL(P_STATE_OK, parse(stream, &a));
     TEST_ASSERT_EQUAL_STRING("Adventure1", a.title);
     TEST_ASSERT_EQUAL_STRING("Cristian Gotchev", a.author);
     TEST_ASSERT_EQUAL_STRING("v0", a.version);
@@ -73,7 +71,7 @@ static void parse_correct_syntax_file_with_two_sections() {
     char s[] = "A\nB\nv0\n\n<0> Section 0\n[ <1> option to 1\n <1> another option to 1]";
     construct_file_like_obj(S);
 
-    TEST_ASSERT_TRUE(parse(stream, &a));
+    TEST_ASSERT_EQUAL(P_STATE_OK, parse(stream, &a));
     TEST_ASSERT_EQUAL_STRING("A", a.title);
     TEST_ASSERT_EQUAL_STRING("B", a.author);
     TEST_ASSERT_EQUAL_STRING("v0", a.version);
@@ -88,7 +86,7 @@ static void parse_correct_syntax_file_with_two_sections() {
 static void parse_text_file_1() {
     stream = fopen("tests/t1.txt", "r");
 
-    TEST_ASSERT_TRUE(parse(stream, &a));
+    TEST_ASSERT_EQUAL(P_STATE_OK, parse(stream, &a));
     TEST_ASSERT_EQUAL_STRING("Adventure of a lifetime", a.title);
     TEST_ASSERT_EQUAL_STRING("Cristian Gotchev", a.author);
     TEST_ASSERT_EQUAL_STRING("v1", a.version);
@@ -113,16 +111,60 @@ static void parse_text_file_1() {
     TEST_ASSERT_EQUAL(1, a.sections[2].options[0].sec_id);
 }
 
-static void parse_text_file_2_char_instead_of_number_on_4th_line() {
-    stream = fopen("tests/t2.txt", "r");
+static void parse_adventure_with_no_sections() {
+    char s[] = "alksf\nalskdj\naksdljhf\n";
+    construct_file_like_obj(S);
 
-    TEST_ASSERT_FALSE(parse(stream, &a));
+    TEST_ASSERT_EQUAL(P_STATE_NO_SECTIONS_IN_ADVENTURE, parse(stream, &a));
 }
 
-static void parse_text_file_3_with_incorrect_syntax() {
-    stream = fopen("tests/t3.txt", "r");
+static void parse_adventure_with_incorrect_id_syntax() {
+    char s[] = "a\na\na\n<1a>";
+    construct_file_like_obj(S);
 
-    TEST_ASSERT_FALSE(parse(stream, &a));
+    TEST_ASSERT_EQUAL(P_STATE_INVALID_CHAR_IN_ID, parse(stream, &a));
+}
+
+static void parse_adventure_with_incorrect_id_syntax_2() {
+    char s[] = "a\na\na\n<1>s[<njn> asdfas]";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_EQUAL(P_STATE_INVALID_CHAR_IN_ID, parse(stream, &a));
+}
+
+static void parse_adventure_with_incorrect_option_syntax() {
+    char s[] = "a\na\na\n<1>asfd[<1>]";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_EQUAL(P_STATE_INVALID_SYNTAX_EXPECTED_TEXT, parse(stream, &a));
+}
+
+static void parse_adventure_with_incorrect_option_syntax_2() {
+    char s[] = "a\na\na\n<1>asfd[asfasd]";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_EQUAL(P_STATE_INVALID_SYNTAX_EXPECTED_ID, parse(stream, &a));
+}
+
+static void parse_adventure_with_incorrect_section_syntax() {
+    char s[] = "a\na\na\n<1>[<1> asdfas]";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_EQUAL(P_STATE_INVALID_SYNTAX_EXPECTED_TEXT, parse(stream, &a));
+}
+
+static void parse_adventure_with_incorrect_section_syntax_2() {
+    char s[] = "a\na\na\nasdkjf[<1> asdfas]";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_EQUAL(P_STATE_INVALID_SYNTAX_EXPECTED_ID, parse(stream, &a));
+}
+
+static void parse_adventure_empty_file() {
+    char s[] = "";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_EQUAL(P_STATE_MISSING_ADVENTURE_DATA, parse(stream, &a));
 }
 
 int main() {
@@ -132,8 +174,14 @@ int main() {
     RUN_TEST(parse_correct_syntax_file_with_single_section);
     RUN_TEST(parse_correct_syntax_file_with_two_sections);
     RUN_TEST(parse_text_file_1);
-    RUN_TEST(parse_text_file_2_char_instead_of_number_on_4th_line);
-    RUN_TEST(parse_text_file_3_with_incorrect_syntax);
+    RUN_TEST(parse_adventure_with_no_sections);
+    RUN_TEST(parse_adventure_with_incorrect_id_syntax);
+    RUN_TEST(parse_adventure_with_incorrect_id_syntax_2);
+    RUN_TEST(parse_adventure_with_incorrect_option_syntax);
+    RUN_TEST(parse_adventure_with_incorrect_option_syntax_2);
+    RUN_TEST(parse_adventure_with_incorrect_section_syntax);
+    RUN_TEST(parse_adventure_with_incorrect_section_syntax_2);
+    RUN_TEST(parse_adventure_empty_file);
 
     return UnityEnd();
 }

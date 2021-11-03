@@ -32,29 +32,30 @@ static void add_token_to_list(struct TokenList *tl, struct Token *t) {
     tok_add_token(tl, t);
 }
 
-static bool construct_option(struct TokenList *tl, struct Token *t, struct Opt *out) {
+static enum ParseState construct_option(struct TokenList *tl, struct Token *t, struct Opt *out) {
     struct Token token = *t;
 
-    if (token.ttype != TOK_TEXT) return false; // invalid syntax - expected text
+    if (token.ttype != TOK_TEXT) return P_STATE_INVALID_SYNTAX_EXPECTED_TEXT; // invalid syntax - expected text
     out->text = token.tstr;
 
     token = tok_pop_last_token(tl);
-    if (token.ttype != TOK_ID) return false; // invalid syntax - expected id
+    if (token.ttype != TOK_ID) return P_STATE_INVALID_SYNTAX_EXPECTED_ID; // invalid syntax - expected id
     out->sec_id = strtol(token.tstr, NULL, 10);
     free(token.tstr);
 
-    return true;
+    return P_STATE_OK;
 }
 
-static bool construct_options(struct TokenList *tl, struct Sec *out) {
+static enum ParseState construct_options(struct TokenList *tl, struct Sec *out) {
     struct Token t = tok_pop_last_token(tl);
     struct Opt *options = malloc(sizeof(struct Opt) * MAX_OPTION_COUNT);
     size_t opt_count = 0;
 
     while (t.ttype != TOK_OPENING_OPTIONS_DELIMITER) {
-        if (opt_count == MAX_OPTION_COUNT) return false; // too many options!
+        if (opt_count == MAX_OPTION_COUNT) return P_STATE_TOO_MANY_OPTIONS_IN_SECTION; // too many options!
 
-        if (!construct_option(tl, &t, options + opt_count)) return false; // error parsing option
+        enum ParseState state = construct_option(tl, &t, options + opt_count);
+        if (state != P_STATE_OK) return state;
         opt_count++;
 
         t = tok_pop_last_token(tl);
@@ -76,22 +77,23 @@ static bool construct_options(struct TokenList *tl, struct Sec *out) {
     }
     out->opt_count = opt_count;
 
-    return true;
+    return P_STATE_OK;
 }
 
-static bool construct_section(struct TokenList *tl, struct Sec *s) {
-    if (!construct_options(tl, s)) return false;
+static enum ParseState construct_section(struct TokenList *tl, struct Sec *s) {
+    enum ParseState state = construct_options(tl, s);
+    if (state != P_STATE_OK) return state;
 
     struct Token t = tok_pop_last_token(tl);
-    if (t.ttype != TOK_TEXT) return false; // invalid syntax - expected text
+    if (t.ttype != TOK_TEXT) return P_STATE_INVALID_SYNTAX_EXPECTED_TEXT; // invalid syntax - expected text
     s->text = t.tstr;
 
     t = tok_pop_last_token(tl);
-    if (t.ttype != TOK_ID) return false; // invalid syntax - expected id
+    if (t.ttype != TOK_ID) return P_STATE_INVALID_SYNTAX_EXPECTED_ID; // invalid syntax - expected id
     s->id = strtol(t.tstr, NULL, 10);
     free(t.tstr);
 
-    return true;
+    return P_STATE_OK;
 }
 
 static char *copy_to_mem(char *s) {
@@ -102,12 +104,15 @@ static char *copy_to_mem(char *s) {
     return out;
 }
 
-bool parse(FILE *file, struct Adventure *a) {
+enum ParseState parse(FILE *file, struct Adventure *a) {
     struct Sec *sections = NULL;
     size_t section_count = 0;
+
     struct TokenList tokens = (struct TokenList){.count=0, .list=NULL};
     struct Token t = {.tstr=NULL};
     tok_clear(&t);
+
+    enum ParseState state;
 
     while (!feof(file)) {
         char c = getc(file);
@@ -120,18 +125,19 @@ bool parse(FILE *file, struct Adventure *a) {
             if (t.ttype == TOK_EMPTY) {
                 t = (struct Token) { .ttype=TOK_OPENING_OPTIONS_DELIMITER };
                 add_token_to_list(&tokens, &t);
-            } else { return false; } // invalid syntax
+            } else { return P_STATE_INVALID_CHARACTER_OPENING_OPTION_DEL; } // invalid char - found [ in ID
 
         } else if (c == ']') {
             if (t.ttype == TOK_TEXT) {
                 add_token_to_list(&tokens, &t);
             } else if (t.ttype != TOK_EMPTY) {
-                return false; // invalid syntax
+                return P_STATE_INVALID_CHARACTER_CLOSING_OPTION_DEL; // invalid char - found ] in ID
             }
 
             section_count++;
             sections = realloc(sections, sizeof(struct Sec) * section_count);
-            if (!construct_section(&tokens, sections + section_count - 1)) return false; // invalid syntax
+            state = construct_section(&tokens, sections + section_count - 1);
+            if (state != P_STATE_OK) return state;
 
         } else if (c == '<') {
             if (t.ttype == TOK_TEXT) {
@@ -139,12 +145,12 @@ bool parse(FILE *file, struct Adventure *a) {
             }
 
             if (t.ttype == TOK_EMPTY) { t.ttype = TOK_ID; }
-            else { return false; } // invalid char/syntax
+            else { return P_STATE_INVALID_CHARACTER_OPENING_ID_DEL; } // invalid char - found < inside ID
 
         } else if (isdigit(c)) {
             if (t.ttype == TOK_EMPTY) { t.ttype = TOK_TEXT; }
             if (t.ttype == TOK_TEXT || t.ttype == TOK_ID) { tok_addch(c, &t); }
-            else { return false; } // unreachable
+            else { return P_STATE_UNREACHABLE; } // unreachable
 
         } else if (c == '>') {
             if (t.ttype == TOK_TEXT) {
@@ -153,12 +159,12 @@ bool parse(FILE *file, struct Adventure *a) {
 
             if (t.ttype == TOK_ID) {
                 add_token_to_list(&tokens, &t);
-            } else { return false; } // invalid syntax
+            } else { return P_STATE_INVALID_CHARACTER_CLOSING_ID_DEL; } // invalid syntax - found > outside of ID
 
         } else if (is_valid_text_token_char(c)) {
             if (t.ttype == TOK_EMPTY) { t.ttype = TOK_TEXT; }
             if (t.ttype == TOK_TEXT) { tok_addch(c, &t); }
-            else { return false; } // invalid char
+            else if (t.ttype == TOK_ID) { return P_STATE_INVALID_CHAR_IN_ID; } // invalid char - non-numeric value inside ID
         }
 
         else if (is_whitespace(c)) {
@@ -167,12 +173,14 @@ bool parse(FILE *file, struct Adventure *a) {
     }
 
     if (t.ttype != TOK_EMPTY) {
-        return false; // last token should be "]", which
-                      // is handled on read
+        if (t.ttype == TOK_TEXT) return P_STATE_NO_SECTIONS_IN_ADVENTURE;
+
+        return P_STATE_INVALID_LAST_TOKEN; // last token should be "]", which
+                                           // is handled on read
     }
 
     t = tok_pop_last_token(&tokens);
-    if (t.ttype != TOK_TEXT) return false; // invalid first token - expected text
+    if (t.ttype != TOK_TEXT) return P_STATE_MISSING_ADVENTURE_DATA; // invalid first token - expected text
 
     char tmp[strlen(t.tstr) + 1];
     tmp[strlen(tmp)] = 0;
@@ -180,15 +188,15 @@ bool parse(FILE *file, struct Adventure *a) {
     free(t.tstr);
 
     char *tok = strtok(tmp, "\n");
-    if (tok == NULL) return false; // invalid first line - expected title - unreachable?
+    if (tok == NULL) return P_STATE_UNREACHABLE; // invalid first line - expected title
     a->title = trim_r(copy_to_mem(tok));
 
     tok = strtok(NULL, "\n");
-    if (tok == NULL) return false; // invalid second line - expected author
+    if (tok == NULL) return P_STATE_MISSING_AUTHOR; // invalid second line - expected author
     a->author = trim_r(copy_to_mem(tok));
 
     tok = strtok(NULL, "\n");
-    if (tok == NULL) return false; // invalid third line - expected version
+    if (tok == NULL) return P_STATE_MISSING_VERSION; // invalid third line - expected version
     a->version = trim_r(copy_to_mem(tok));
 
     // ignore the rest of the first token
@@ -197,5 +205,5 @@ bool parse(FILE *file, struct Adventure *a) {
 
     a->sections = sections;
     a->sec_count = section_count;
-    return true;
+    return P_STATE_OK;
 }
