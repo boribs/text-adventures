@@ -2,8 +2,11 @@
 #define TEXT_ADVENTURES_PARSE
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <stdbool.h>
 
+#define MAX_TOKENS 8
 #define TOKEN_STR_INITIAL_LEN 40
 #define TOKEN_STR_LEN_INCREMENT 100
 
