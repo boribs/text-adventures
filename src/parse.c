@@ -15,7 +15,6 @@ static bool is_whitespace(char c) {
 }
 
 static char * trim_r(char *s) {
-    printf("trimming: %s\n", s);
     for (size_t i = strlen(s) - 1; i >= 0; --i) {
         if (!is_whitespace(s[i])) {
             s[i + 1] = 0;
