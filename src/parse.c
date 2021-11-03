@@ -94,7 +94,8 @@ bool parse(FILE *file, struct Adventure *a) {
     }
 
     if (t.ttype != TOK_EMPTY) {
-        add_token_to_list(&tokens, &t);
+        return false; // last token should be "]", which
+                      // is handled on read
     }
 
 
