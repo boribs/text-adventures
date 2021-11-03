@@ -56,7 +56,7 @@ static void parse_very_simple_and_short_str() {
 }
 
 static void parse_correct_syntax_file_with_single_section() {
-    char s[] = "    Adventure1 \nCristian Gotchev\nv0\n1\n<0> Once upon a time\n[<0> Twice upon a time]";
+    char s[] = "    Adventure1 \nCristian Gotchev\nv0\n<0> Once upon a time\n[<0> Twice upon a time]";
     construct_file_like_obj(S);
 
     TEST_ASSERT_TRUE(parse(stream, &a));
@@ -70,7 +70,7 @@ static void parse_correct_syntax_file_with_single_section() {
 }
 
 static void parse_correct_syntax_file_with_two_sections() {
-    char s[] = "A\nB\nv0\n2\n\n<0> Section 0\n[ <1> option to 1\n <1> another option to 1]";
+    char s[] = "A\nB\nv0\n\n<0> Section 0\n[ <1> option to 1\n <1> another option to 1]";
     construct_file_like_obj(S);
 
     TEST_ASSERT_TRUE(parse(stream, &a));
