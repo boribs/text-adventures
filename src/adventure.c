@@ -7,7 +7,7 @@
 bool load_adventure(char *filename, struct Adventure *a) {
     FILE *f = fopen(filename, "r");
     if (f == NULL) return false;
-    if (!parse(f, a)) return false;
+    if (parse(f, a) != P_STATE_OK) return false;
     fclose(f);
     a->current_section = &a->sections[0];
 
