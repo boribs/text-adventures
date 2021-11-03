@@ -193,6 +193,8 @@ bool parse(FILE *file, struct Adventure *a) {
 
     // ignore the rest of the first token
 
+    free(tokens.list);
+
     a->sections = sections;
     a->sec_count = section_count;
     return true;
