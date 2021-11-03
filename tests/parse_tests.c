@@ -23,8 +23,6 @@ void tearDown() {
         fclose(stream);
         stream = NULL;
     }
-
-    // clear adventure
 }
 
 #define S &s[0]
@@ -41,7 +39,7 @@ static void parse_very_simple_and_short_str() {
     char s[] = "a\nb\nc\n<1>aksdjfask[<1> opcion 1 <2> opcion 2]";
     construct_file_like_obj(S);
 
-    TEST_ASSERT_TRUE(parse(stream, &a));
+    TEST_ASSERT_EQUAL(P_STATE_OK, parse(stream, &a));
     TEST_ASSERT_EQUAL_STRING("a", a.title);
     TEST_ASSERT_EQUAL_STRING("b", a.author);
     TEST_ASSERT_EQUAL_STRING("c", a.version);
@@ -59,7 +57,7 @@ static void parse_correct_syntax_file_with_single_section() {
     char s[] = "    Adventure1 \nCristian Gotchev\nv0\n<0> Once upon a time\n[<0> Twice upon a time]";
     construct_file_like_obj(S);
 
-    TEST_ASSERT_TRUE(parse(stream, &a));
+    TEST_ASSERT_EQUAL(P_STATE_OK, parse(stream, &a));
     TEST_ASSERT_EQUAL_STRING("Adventure1", a.title);
     TEST_ASSERT_EQUAL_STRING("Cristian Gotchev", a.author);
     TEST_ASSERT_EQUAL_STRING("v0", a.version);
@@ -73,7 +71,7 @@ static void parse_correct_syntax_file_with_two_sections() {
     char s[] = "A\nB\nv0\n\n<0> Section 0\n[ <1> option to 1\n <1> another option to 1]";
     construct_file_like_obj(S);
 
-    TEST_ASSERT_TRUE(parse(stream, &a));
+    TEST_ASSERT_EQUAL(P_STATE_OK, parse(stream, &a));
     TEST_ASSERT_EQUAL_STRING("A", a.title);
     TEST_ASSERT_EQUAL_STRING("B", a.author);
     TEST_ASSERT_EQUAL_STRING("v0", a.version);
@@ -88,7 +86,7 @@ static void parse_correct_syntax_file_with_two_sections() {
 static void parse_text_file_1() {
     stream = fopen("tests/t1.txt", "r");
 
-    TEST_ASSERT_TRUE(parse(stream, &a));
+    TEST_ASSERT_EQUAL(P_STATE_OK, parse(stream, &a));
     TEST_ASSERT_EQUAL_STRING("Adventure of a lifetime", a.title);
     TEST_ASSERT_EQUAL_STRING("Cristian Gotchev", a.author);
     TEST_ASSERT_EQUAL_STRING("v1", a.version);

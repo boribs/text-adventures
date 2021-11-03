@@ -9,6 +9,24 @@
 #define TOKEN_STR_INITIAL_LEN 40
 #define TOKEN_STR_LEN_INCREMENT 100
 
+enum ParseState {
+    P_STATE_OK,                                   // 0
+    P_STATE_UNREACHABLE,                          // 1
+    P_STATE_INVALID_CHARACTER_OPENING_ID_DEL,     // 2
+    P_STATE_INVALID_CHARACTER_CLOSING_ID_DEL,     // 3
+    P_STATE_INVALID_CHARACTER_OPENING_OPTION_DEL, // 4
+    P_STATE_INVALID_CHARACTER_CLOSING_OPTION_DEL, // 5
+    P_STATE_INVALID_CHAR_IN_ID,                   // 6
+    P_STATE_INVALID_LAST_TOKEN,                   // 7
+    P_STATE_MISSING_ADVENTURE_DATA,               // 8
+    P_STATE_MISSING_AUTHOR,                       // 9
+    P_STATE_MISSING_VERSION,                      // 10
+    P_STATE_INVALID_SYNTAX_EXPECTED_TEXT,         // 11
+    P_STATE_INVALID_SYNTAX_EXPECTED_ID,           // 12
+    P_STATE_TOO_MANY_OPTIONS_IN_SECTION,          // 13
+    P_STATE_NO_SECTIONS_IN_ADVENTURE,             // 14
+};
+
 enum TokenType {
     TOK_ID,
     TOK_TEXT,
@@ -67,6 +85,6 @@ static struct Token tok_pop_last_token(struct TokenList *tl) {
     return last;
 }
 
-bool parse(FILE *file, struct Adventure *a);
+enum ParseState parse(FILE *file, struct Adventure *a);
 
 #endif // TEXT_ADVENTURES_PARSE
