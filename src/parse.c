@@ -67,13 +67,13 @@ bool parse(FILE *file, struct Adventure *a) {
             } else { return false; } // invalid syntax
 
         } else if (is_valid_text_token_char(c)) {
-
-
+            if (t.ttype == TOK_EMPTY) { t.ttype = TOK_TEXT; }
+            if (t.ttype == TOK_TEXT) { tok_addch(c, &t); }
+            else { return false; } // invalid char
         }
 
         else if (is_whitespace(c)) {
-
-
+            if (t.ttype == TOK_TEXT) { tok_addch(c, &t); }
         }
     }
 
