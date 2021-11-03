@@ -118,10 +118,18 @@ static void parse_adventure_with_no_sections() {
     TEST_ASSERT_EQUAL(P_STATE_NO_SECTIONS_IN_ADVENTURE, parse(stream, &a));
 }
 
-static void parse_text_file_3_with_incorrect_syntax() {
-    stream = fopen("tests/t3.txt", "r");
+static void parse_adventure_with_incorrect_id_syntax() {
+    char s[] = "a\na\na\n<1a>";
+    construct_file_like_obj(S);
 
-    TEST_ASSERT_FALSE(parse(stream, &a));
+    TEST_ASSERT_EQUAL(P_STATE_INVALID_CHAR_IN_ID, parse(stream, &a));
+}
+
+static void parse_adventure_with_incorrect_id_syntax_2() {
+    char s[] = "a\na\na\n<1>s[<njn> asdfas]";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_EQUAL(P_STATE_INVALID_CHAR_IN_ID, parse(stream, &a));
 }
 
 int main() {
@@ -130,9 +138,10 @@ int main() {
     RUN_TEST(parse_very_simple_and_short_str);
     RUN_TEST(parse_correct_syntax_file_with_single_section);
     RUN_TEST(parse_correct_syntax_file_with_two_sections);
+    RUN_TEST(parse_text_file_1);
     RUN_TEST(parse_adventure_with_no_sections);
-    RUN_TEST(parse_text_file_2_char_instead_of_number_on_4th_line);
-    RUN_TEST(parse_text_file_3_with_incorrect_syntax);
+    RUN_TEST(parse_adventure_with_incorrect_id_syntax);
+    RUN_TEST(parse_adventure_with_incorrect_id_syntax_2);
 
     return UnityEnd();
 }
