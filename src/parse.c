@@ -95,6 +95,14 @@ static bool construct_section(struct TokenList *tl, struct Sec *s) {
     return true;
 }
 
+static char *copy_to_mem(char *s) {
+    char *out = malloc(sizeof(char) * (strlen(s) + 1));
+    strcpy(out, s);
+    s[strlen(s)] = 0;
+
+    return out;
+}
+
 bool parse(FILE *file, struct Adventure *a) {
     struct Sec *sections = NULL;
     size_t section_count = 0;
@@ -164,6 +172,27 @@ bool parse(FILE *file, struct Adventure *a) {
                       // is handled on read
     }
 
+    t = tok_pop_last_token(&tokens);
+    if (t.ttype != TOK_TEXT) return false; // invalid first token - expected text
+
+    char tmp[strlen(t.tstr) + 1];
+    tmp[strlen(tmp)] = 0;
+    strcpy(tmp, t.tstr);
+    free(t.tstr);
+
+    char *tok = strtok(tmp, "\n");
+    if (tok == NULL) return false; // invalid first line - expected title - unreachable?
+    a->title = trim_r(copy_to_mem(tok));
+
+    tok = strtok(NULL, "\n");
+    if (tok == NULL) return false; // invalid second line - expected author
+    a->author = trim_r(copy_to_mem(tok));
+
+    tok = strtok(NULL, "\n");
+    if (tok == NULL) return false; // invalid third line - expected version
+    a->version = trim_r(copy_to_mem(tok));
+
+    // ignore everything in between:)
 
     a->sections = sections;
     a->sec_count = section_count;
