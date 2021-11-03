@@ -35,11 +35,11 @@ static void add_token_to_list(struct TokenList *tl, struct Token *t) {
 static bool construct_option(struct TokenList *tl, struct Token *t, struct Opt *out) {
     struct Token token = *t;
 
-    if (token.ttype != TOK_TEXT) return false;
+    if (token.ttype != TOK_TEXT) return false; // invalid syntax - expected text
     out->text = token.tstr;
 
     token = tok_pop_last_token(tl);
-    if (token.ttype != TOK_ID) return false;
+    if (token.ttype != TOK_ID) return false; // invalid syntax - expected id
     out->sec_id = strtol(token.tstr, NULL, 10);
     free(token.tstr);
 
@@ -55,7 +55,6 @@ static bool construct_options(struct TokenList *tl, struct Sec *out) {
         if (opt_count == MAX_OPTION_COUNT) return false; // too many options!
 
         if (!construct_option(tl, &t, options + opt_count)) return false; // error parsing option
-        // printf("<%zu> '%s'\n", options[opt_count].sec_id, options[opt_count].text);
         opt_count++;
 
         t = tok_pop_last_token(tl);
@@ -192,7 +191,7 @@ bool parse(FILE *file, struct Adventure *a) {
     if (tok == NULL) return false; // invalid third line - expected version
     a->version = trim_r(copy_to_mem(tok));
 
-    // ignore everything in between:)
+    // ignore the rest of the first token
 
     a->sections = sections;
     a->sec_count = section_count;
