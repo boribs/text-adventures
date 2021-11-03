@@ -61,6 +61,14 @@ static bool construct_options(struct TokenList *tl, struct Sec *out) {
         t = tok_pop_last_token(tl);
     }
 
+    // invert options, necessary because they're read backwards
+    struct Opt tmp;
+    for (size_t i = 0; i < opt_count / 2; ++i) {
+        tmp = options[i];
+        options[i] = options[opt_count - i - 1];
+        options[opt_count - i - 1] = tmp;
+    }
+
     if (opt_count == 0) {
         out->options = NULL;
         free(options);
