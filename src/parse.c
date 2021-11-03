@@ -24,10 +24,24 @@ bool parse(FILE *file, struct Adventure *a) {
         char c = getc(file);
 
         if (c == '[') {
+            if (t.ttype == TOK_TEXT) {
+                if (!add_token(tokens, &t, &token_count)) return false; // too many tokens!
+            }
 
+            if (t.ttype == TOK_EMPTY) {
+                t = (struct Token) { .ttype=TOK_OPENING_OPTIONS_DELIMITER };
+                if (!add_token(tokens, &t, &token_count)) return false; // too many tokens!
+            } else { return false; } // invalid syntax
 
         } else if (c == ']') {
+            if (t.ttype == TOK_TEXT) {
+                if (!add_token(tokens, &t, &token_count)) return false; // too many tokens!
+            }
 
+            if (t.ttype == TOK_EMPTY) {
+                t = (struct Token) { .ttype=TOK_CLOSING_OPTIONS_DELIMITER };
+                if (!add_token(tokens, &t, &token_count)) return false; // too many tokens!
+            } else { return false; } // invalid syntax
 
         } else if (c == '<') {
 
