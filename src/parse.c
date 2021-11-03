@@ -96,6 +96,8 @@ static bool construct_section(struct TokenList *tl, struct Sec *s) {
 }
 
 bool parse(FILE *file, struct Adventure *a) {
+    struct Sec *sections = NULL;
+    size_t section_count = 0;
     struct TokenList tokens = (struct TokenList){.count=0, .list=NULL};
     struct Token t = {.tstr=NULL};
     tok_clear(&t);
@@ -120,12 +122,9 @@ bool parse(FILE *file, struct Adventure *a) {
                 return false; // invalid syntax
             }
 
-            // if (t.ttype == TOK_EMPTY) {
-            //     t = (struct Token) { .ttype=TOK_CLOSING_OPTIONS_DELIMITER };
-            //     add_token_to_list(&tokens, &t);
-            // } else { return false; } // invalid syntax
-
-            construct_section(&tokens);
+            section_count++;
+            sections = realloc(sections, sizeof(struct Sec) * section_count);
+            if (!construct_section(&tokens, sections + section_count - 1)) return false; // invalid syntax
 
         } else if (c == '<') {
             if (t.ttype == TOK_TEXT) {
@@ -166,5 +165,7 @@ bool parse(FILE *file, struct Adventure *a) {
     }
 
 
+    a->sections = sections;
+    a->sec_count = section_count;
     return true;
 }
