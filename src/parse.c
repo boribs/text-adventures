@@ -14,6 +14,24 @@ static bool is_whitespace(char c) {
     return c == ' ' || c == '\n' || c == '\t';
 }
 
+static char * trim_r(char *s) {
+    printf("trimming: %s\n", s);
+    for (size_t i = strlen(s) - 1; i >= 0; --i) {
+        if (!is_whitespace(s[i])) {
+            s[i + 1] = 0;
+            return realloc(s, sizeof(char) * (i + 2));
+        }
+    }
+
+    return s;
+}
+
+static void add_token_to_list(struct TokenList *tl, struct Token *t) {
+    if (t->tstr != NULL) {
+        t->tstr = trim_r(t->tstr);
+    }
+    tok_add_token(tl, t);
+}
 bool parse(FILE *file, struct Adventure *a) {
     struct TokenList tokens = (struct TokenList){.count=0, .list=NULL};
     struct Token t = {.tstr=NULL};
@@ -24,27 +42,27 @@ bool parse(FILE *file, struct Adventure *a) {
 
         if (c == '[') {
             if (t.ttype == TOK_TEXT) {
-                tok_add_token(&tokens, &t);
+                add_token_to_list(&tokens, &t);
             }
 
             if (t.ttype == TOK_EMPTY) {
                 t = (struct Token) { .ttype=TOK_OPENING_OPTIONS_DELIMITER };
-                tok_add_token(&tokens, &t);
+                add_token_to_list(&tokens, &t);
             } else { return false; } // invalid syntax
 
         } else if (c == ']') {
             if (t.ttype == TOK_TEXT) {
-                tok_add_token(&tokens, &t);
+                add_token_to_list(&tokens, &t);
             }
 
             if (t.ttype == TOK_EMPTY) {
                 t = (struct Token) { .ttype=TOK_CLOSING_OPTIONS_DELIMITER };
-                tok_add_token(&tokens, &t);
+                add_token_to_list(&tokens, &t);
             } else { return false; } // invalid syntax
 
         } else if (c == '<') {
             if (t.ttype == TOK_TEXT) {
-                tok_add_token(&tokens, &t);
+                add_token_to_list(&tokens, &t);
             }
 
             if (t.ttype == TOK_EMPTY) { t.ttype = TOK_ID; }
@@ -57,11 +75,11 @@ bool parse(FILE *file, struct Adventure *a) {
 
         } else if (c == '>') {
             if (t.ttype == TOK_TEXT) {
-                tok_add_token(&tokens, &t);
+                add_token_to_list(&tokens, &t);
             }
 
             if (t.ttype == TOK_ID) {
-                tok_add_token(&tokens, &t);
+                add_token_to_list(&tokens, &t);
             } else { return false; } // invalid syntax
 
         } else if (is_valid_text_token_char(c)) {
@@ -76,7 +94,7 @@ bool parse(FILE *file, struct Adventure *a) {
     }
 
     if (t.ttype != TOK_EMPTY) {
-        tok_add_token(&tokens, &t);
+        add_token_to_list(&tokens, &t);
     }
 
 
