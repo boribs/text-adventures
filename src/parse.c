@@ -46,13 +46,30 @@ static bool construct_option(struct TokenList *tl, struct Token *t, struct Opt *
     return true;
 }
 
-static bool construct_options(struct TokenList *tl) {
+static bool construct_options(struct TokenList *tl, struct Sec *out) {
     struct Token t = tok_pop_last_token(tl);
+    struct Opt *options = malloc(sizeof(struct Opt) * MAX_OPTION_COUNT);
+    size_t opt_count = 0;
 
     while (t.ttype != TOK_OPENING_OPTIONS_DELIMITER) {
-        construct_option(tl, &t);
+        if (opt_count == MAX_OPTION_COUNT) return false; // too many options!
+
+        if (!construct_option(tl, &t, options + opt_count)) return false; // error parsing option
+        // printf("<%zu> '%s'\n", options[opt_count].sec_id, options[opt_count].text);
+        opt_count++;
+
         t = tok_pop_last_token(tl);
     }
+
+    if (opt_count == 0) {
+        out->options = NULL;
+        free(options);
+    } else {
+        out->options = options;
+    }
+    out->opt_count = opt_count;
+
+    return true;
 }
 
 static struct Sec construct_section(struct TokenList *tl) {
