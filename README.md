@@ -7,7 +7,6 @@ It reads files that follow this syntax:
 #Title
 #Author
 #Version
-#ammount of sections
 
 <section id> #section text
 [
