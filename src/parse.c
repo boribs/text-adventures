@@ -31,6 +31,37 @@ static void add_token_to_list(struct TokenList *tl, struct Token *t) {
     }
     tok_add_token(tl, t);
 }
+
+static bool construct_option(struct TokenList *tl, struct Token *t) {
+    struct Opt option;
+    struct Token token = *t;
+
+    if (token.ttype != TOK_TEXT) return false;
+    option.text = token.tstr;
+
+    token = tok_pop_last_token(tl);
+    if (token.ttype != TOK_ID) return false;
+    option.sec_id = strtol(token.tstr, NULL, 10);
+    free(token.tstr);
+
+    return true;
+}
+
+static bool construct_options(struct TokenList *tl) {
+    struct Token t = tok_pop_last_token(tl);
+
+    while (t.ttype != TOK_OPENING_OPTIONS_DELIMITER) {
+        construct_option(tl, &t);
+        t = tok_pop_last_token(tl);
+    }
+}
+
+static struct Sec construct_section(struct TokenList *tl) {
+    struct Sec s;
+
+    construct_options(tl);
+}
+
 bool parse(FILE *file, struct Adventure *a) {
     struct TokenList tokens = (struct TokenList){.count=0, .list=NULL};
     struct Token t = {.tstr=NULL};
@@ -52,12 +83,16 @@ bool parse(FILE *file, struct Adventure *a) {
         } else if (c == ']') {
             if (t.ttype == TOK_TEXT) {
                 add_token_to_list(&tokens, &t);
+            } else if (t.ttype != TOK_EMPTY) {
+                return false; // invalid syntax
             }
 
-            if (t.ttype == TOK_EMPTY) {
-                t = (struct Token) { .ttype=TOK_CLOSING_OPTIONS_DELIMITER };
-                add_token_to_list(&tokens, &t);
-            } else { return false; } // invalid syntax
+            // if (t.ttype == TOK_EMPTY) {
+            //     t = (struct Token) { .ttype=TOK_CLOSING_OPTIONS_DELIMITER };
+            //     add_token_to_list(&tokens, &t);
+            // } else { return false; } // invalid syntax
+
+            construct_section(&tokens);
 
         } else if (c == '<') {
             if (t.ttype == TOK_TEXT) {

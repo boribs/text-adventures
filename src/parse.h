@@ -45,9 +45,7 @@ static void tok_addch(char c, struct Token *t) {
 
 static void tok_clear(struct Token *t) {
     t->ttype = TOK_EMPTY;
-    if (t->tstr != NULL) {
-        t->tstr = NULL;
-    }
+    t->tstr = NULL;
     t->tstr_max_len = 0;
 }
 
@@ -60,6 +58,16 @@ static void tok_add_token(struct TokenList *tl, struct Token *t) {
     tok_grow_list(tl);
     tl->list[tl->count - 1] = *t;
     tok_clear(t);
+}
+
+static struct Token tok_pop_last_token(struct TokenList *tl) {
+    if (tl->count == 0) return (struct Token){.ttype=TOK_EMPTY};
+
+    (tl->count)--;
+    struct Token last = tl->list[tl->count];
+    tl->list = realloc(tl->list, sizeof(struct Token) * tl->count);
+
+    return last;
 }
 
 bool parse(FILE *file, struct Adventure *a);
