@@ -80,10 +80,19 @@ static bool construct_options(struct TokenList *tl, struct Sec *out) {
     return true;
 }
 
-static struct Sec construct_section(struct TokenList *tl) {
-    struct Sec s;
+static bool construct_section(struct TokenList *tl, struct Sec *s) {
+    if (!construct_options(tl, s)) return false;
 
-    construct_options(tl);
+    struct Token t = tok_pop_last_token(tl);
+    if (t.ttype != TOK_TEXT) return false; // invalid syntax - expected text
+    s->text = t.tstr;
+
+    t = tok_pop_last_token(tl);
+    if (t.ttype != TOK_ID) return false; // invalid syntax - expected id
+    s->id = strtol(t.tstr, NULL, 10);
+    free(t.tstr);
+
+    return true;
 }
 
 bool parse(FILE *file, struct Adventure *a) {
