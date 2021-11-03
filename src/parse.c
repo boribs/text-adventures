@@ -32,16 +32,15 @@ static void add_token_to_list(struct TokenList *tl, struct Token *t) {
     tok_add_token(tl, t);
 }
 
-static bool construct_option(struct TokenList *tl, struct Token *t) {
-    struct Opt option;
+static bool construct_option(struct TokenList *tl, struct Token *t, struct Opt *out) {
     struct Token token = *t;
 
     if (token.ttype != TOK_TEXT) return false;
-    option.text = token.tstr;
+    out->text = token.tstr;
 
     token = tok_pop_last_token(tl);
     if (token.ttype != TOK_ID) return false;
-    option.sec_id = strtol(token.tstr, NULL, 10);
+    out->sec_id = strtol(token.tstr, NULL, 10);
     free(token.tstr);
 
     return true;
