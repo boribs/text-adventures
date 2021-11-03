@@ -160,6 +160,13 @@ static void parse_adventure_with_incorrect_section_syntax_2() {
     TEST_ASSERT_EQUAL(P_STATE_INVALID_SYNTAX_EXPECTED_ID, parse(stream, &a));
 }
 
+static void parse_adventure_empty_file() {
+    char s[] = "";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_EQUAL(P_STATE_MISSING_ADVENTURE_DATA, parse(stream, &a));
+}
+
 int main() {
     UnityBegin("tests/parse_tests.c");
 
@@ -174,6 +181,7 @@ int main() {
     RUN_TEST(parse_adventure_with_incorrect_option_syntax_2);
     RUN_TEST(parse_adventure_with_incorrect_section_syntax);
     RUN_TEST(parse_adventure_with_incorrect_section_syntax_2);
+    RUN_TEST(parse_adventure_empty_file);
 
     return UnityEnd();
 }
