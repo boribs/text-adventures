@@ -132,6 +132,34 @@ static void parse_adventure_with_incorrect_id_syntax_2() {
     TEST_ASSERT_EQUAL(P_STATE_INVALID_CHAR_IN_ID, parse(stream, &a));
 }
 
+static void parse_adventure_with_incorrect_option_syntax() {
+    char s[] = "a\na\na\n<1>asfd[<1>]";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_EQUAL(P_STATE_INVALID_SYNTAX_EXPECTED_TEXT, parse(stream, &a));
+}
+
+static void parse_adventure_with_incorrect_option_syntax_2() {
+    char s[] = "a\na\na\n<1>asfd[asfasd]";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_EQUAL(P_STATE_INVALID_SYNTAX_EXPECTED_ID, parse(stream, &a));
+}
+
+static void parse_adventure_with_incorrect_section_syntax() {
+    char s[] = "a\na\na\n<1>[<1> asdfas]";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_EQUAL(P_STATE_INVALID_SYNTAX_EXPECTED_TEXT, parse(stream, &a));
+}
+
+static void parse_adventure_with_incorrect_section_syntax_2() {
+    char s[] = "a\na\na\nasdkjf[<1> asdfas]";
+    construct_file_like_obj(S);
+
+    TEST_ASSERT_EQUAL(P_STATE_INVALID_SYNTAX_EXPECTED_ID, parse(stream, &a));
+}
+
 int main() {
     UnityBegin("tests/parse_tests.c");
 
@@ -142,6 +170,10 @@ int main() {
     RUN_TEST(parse_adventure_with_no_sections);
     RUN_TEST(parse_adventure_with_incorrect_id_syntax);
     RUN_TEST(parse_adventure_with_incorrect_id_syntax_2);
+    RUN_TEST(parse_adventure_with_incorrect_option_syntax);
+    RUN_TEST(parse_adventure_with_incorrect_option_syntax_2);
+    RUN_TEST(parse_adventure_with_incorrect_section_syntax);
+    RUN_TEST(parse_adventure_with_incorrect_section_syntax_2);
 
     return UnityEnd();
 }
