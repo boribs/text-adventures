@@ -3,6 +3,13 @@
 
 #include "common.h"
 #include "parse.h"
+#include "adventure.h"
+
+enum InputOptions {  // as many as MAX_OPTION_COUNT (common.h)
+    ADVENTURE_INPUT_OPTION,
+    ADVENTURE_INPUT_QUIT,
+    ADVENTURE_INPUT_INVALID,
+};
 
 bool load_adventure(char *filename, struct Adventure *a) {
     FILE *f = fopen(filename, "r");
@@ -38,7 +45,7 @@ void show_current_section(struct Adventure *a) {
 }
 
 static void goto_section(struct Adventure *a, size_t i) {
-    size_t id = a->current_section->options[i - 1].sec_id;
+    size_t id = a->current_section->options[i].sec_id;
     for (size_t i = 0; i < a->sec_count; ++i) {
         if (a->sections[i].id == id) {
             a->current_section = &a->sections[i];
@@ -52,21 +59,37 @@ bool end_of_adventure(struct Adventure *a) {
     return a->current_section->opt_count == 0;
 }
 
-static bool is_valid_input(int input, struct Adventure *a) {
-    return (
-        input - 1 >= 0 &&
-        input - 1 <= a->current_section->opt_count
-    );
+static enum InputOptions validate_input(char input, struct Adventure *a) {
+    int i = input - '0' - 1;
+
+    if (i >= 0 && i <= a->current_section->opt_count) {
+        return ADVENTURE_INPUT_OPTION;
+    } else if (input == KEY_QUIT) {
+        return ADVENTURE_INPUT_QUIT;
+    } else {
+        return ADVENTURE_INPUT_INVALID;
+    }
 }
 
-void get_input(struct Adventure *a) {
-    int input;
+bool get_input(struct Adventure *a) {
+    char input;
+    enum InputOptions i;
+    size_t option;
+
     do {
         fflush(stdin);
         printf("> ");
-        scanf("%d", &input);
-    } while(!is_valid_input(input, a));
+        scanf("%c", &input);
+        i = validate_input(input, a);
+    } while(i == ADVENTURE_INPUT_INVALID);
+
+    if (i == ADVENTURE_INPUT_QUIT) {
+        return false;
+    } else {
+        option = (size_t)(input - '0' - 1);
+    }
 
     printf("\n");
-    goto_section(a, input);
+    goto_section(a, option);
+    return true;
 }

@@ -12,8 +12,8 @@ int main() {
     show_adventure_data(&a);
     show_current_section(&a);
 
-    while (!end_of_adventure(&a)) {
-        get_input(&a);
+    while (!end_of_adventure(&a) && get_input(&a)) {
+        ;
     }
 
     return 0;
