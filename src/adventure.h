@@ -3,12 +3,18 @@
 
 #include <stdbool.h>
 
+enum InputOptions { // as many as MAX_OPTION_COUNT (common.h)
+    ADVENTURE_INPUT_OPTION_1,
+    ADVENTURE_INPUT_OPTION_2,
+    ADVENTURE_INPUT_OPTION_3,
+    ADVENTURE_INPUT_OPTION_4,
+    ADVENTURE_INPUT_OPTION_5,
+    ADVENTURE_INPUT_QUIT,
+    ADVENTURE_INPUT_INVALID,
+};
+
 #define KEY_QUIT 'q'
 
-bool load_adventure(char *filename, struct Adventure *a);
-void show_adventure_data(struct Adventure *a);
-void show_current_section(struct Adventure *a);
-bool end_of_adventure(struct Adventure *a);
-bool get_input(struct Adventure *a);
+void play_adventure(char *filename);
 
 #endif // TEXT_ADVENTURES_ADVENTURE

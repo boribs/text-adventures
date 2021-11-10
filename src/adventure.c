@@ -5,13 +5,7 @@
 #include "parse.h"
 #include "adventure.h"
 
-enum InputOptions {  // as many as MAX_OPTION_COUNT (common.h)
-    ADVENTURE_INPUT_OPTION,
-    ADVENTURE_INPUT_QUIT,
-    ADVENTURE_INPUT_INVALID,
-};
-
-bool load_adventure(char *filename, struct Adventure *a) {
+static bool load_adventure(char *filename, struct Adventure *a) {
     FILE *f = fopen(filename, "r");
     if (f == NULL) return false;
     if (parse(f, a) != P_STATE_OK) return false;
@@ -21,7 +15,7 @@ bool load_adventure(char *filename, struct Adventure *a) {
     return true;
 }
 
-void show_adventure_data(struct Adventure *a) {
+static void show_adventure_data(struct Adventure *a) {
     printf("%s\n", a->title);
     printf("by %s\n", a->author);
     printf("%s\n\n", a->version);
@@ -40,12 +34,13 @@ static void show_section(struct Sec *s) {
     printf("\n");
 }
 
-void show_current_section(struct Adventure *a) {
+static void show_current_section(struct Adventure *a) {
     show_section(a->current_section);
 }
 
-static void goto_section(struct Adventure *a, size_t i) {
+static void goto_section(struct Adventure *a, enum InputOptions i) {
     size_t id = a->current_section->options[i].sec_id;
+
     for (size_t i = 0; i < a->sec_count; ++i) {
         if (a->sections[i].id == id) {
             a->current_section = &a->sections[i];
@@ -55,7 +50,7 @@ static void goto_section(struct Adventure *a, size_t i) {
     show_section(a->current_section);
 }
 
-bool end_of_adventure(struct Adventure *a) {
+static bool end_of_adventure(struct Adventure *a) {
     return a->current_section->opt_count == 0;
 }
 
@@ -63,7 +58,7 @@ static enum InputOptions validate_input(char input, struct Adventure *a) {
     int i = input - '0' - 1;
 
     if (i >= 0 && i <= a->current_section->opt_count) {
-        return ADVENTURE_INPUT_OPTION;
+        return (enum InputOptions)i;
     } else if (input == KEY_QUIT) {
         return ADVENTURE_INPUT_QUIT;
     } else {
@@ -71,10 +66,9 @@ static enum InputOptions validate_input(char input, struct Adventure *a) {
     }
 }
 
-bool get_input(struct Adventure *a) {
+static enum InputOptions get_input(struct Adventure *a) {
     char input;
     enum InputOptions i;
-    size_t option;
 
     do {
         fflush(stdin);
@@ -83,13 +77,30 @@ bool get_input(struct Adventure *a) {
         i = validate_input(input, a);
     } while(i == ADVENTURE_INPUT_INVALID);
 
-    if (i == ADVENTURE_INPUT_QUIT) {
-        return false;
-    } else {
-        option = (size_t)(input - '0' - 1);
+    printf("\n");
+    return i;
+}
+
+void play_adventure(char *filename) {
+    struct Adventure a;
+
+    if (!load_adventure(filename, &a)) {
+        printf("Error opening adventure\n");
+        exit(1);
     }
 
-    printf("\n");
-    goto_section(a, option);
-    return true;
+    show_adventure_data(&a);
+    show_current_section(&a);
+
+    while (!end_of_adventure(&a)) {
+        enum InputOptions input = get_input(&a);
+
+        if (input == ADVENTURE_INPUT_QUIT) {
+            return;
+        } else if (input == ADVENTURE_INPUT_INVALID) {
+            ; // unreachable
+        } else {
+            goto_section(&a, input);
+        }
+    }
 }
