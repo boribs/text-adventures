@@ -96,15 +96,15 @@ static void print_boxed_text(char *str, int trailing_nl) {
             col = 0;
         }
 
+        col += tok_len;
         if (del == ' ') {
-            printf(" ");
             col++;
+            if (col < w.ws_col) printf(" ");
         } else if (del == '\n') {
             printf("\n");
             col = 0;
         }
 
-        col += tok_len;
         tok = strtok(NULL, " \n");
     }
 
