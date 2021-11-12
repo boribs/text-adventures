@@ -29,8 +29,7 @@ static void show_error_message(char *filename, struct TokenError terr) {
             printf("%s:%zu:%zu: ", filename, terr.row, terr.col);
             printf("Found invalid character in ID\n");break;
         case P_STATE_INVALID_LAST_TOKEN:
-            printf("%s:%zu:%zu: ", filename, terr.row, terr.col);
-            printf("The last thing in the file should be `]`\n");break;
+            printf("The last thing in the file should be `]`. Unclosed section?\n");break;
         case P_STATE_MISSING_ADVENTURE_DATA:
             printf("The first lines in the file should be: title, author, version\n");break;
         case P_STATE_MISSING_AUTHOR:
