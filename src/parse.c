@@ -189,7 +189,7 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
     }
 
     if (t.ttype != TOK_EMPTY) {
-        if (t.ttype == TOK_TEXT) return te(P_STATE_NO_SECTIONS_IN_ADVENTURE, 0, 0);
+        if (section_count == 0) return te(P_STATE_NO_SECTIONS_IN_ADVENTURE, 0, 0);
 
         return te(P_STATE_INVALID_LAST_TOKEN, 0, 0); // last token should be "]", which
                                                      // is handled on read
