@@ -60,8 +60,8 @@ static struct TokenError construct_options(struct TokenList *tl, struct Sec *out
             return te(P_STATE_TOO_MANY_OPTIONS_IN_SECTION, t.col, t.row); // too many options!
         }
 
-        struct TokenError te = construct_option(tl, &t, options + opt_count);
-        if (te.state != P_STATE_OK) return te;
+        struct TokenError terr = construct_option(tl, &t, options + opt_count);
+        if (terr.state != P_STATE_OK) return terr;
         opt_count++;
 
         t = tok_pop_last_token(tl);
@@ -120,7 +120,7 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
 
     struct TokenList tokens = (struct TokenList){.count=0, .list=NULL};
     struct Token t = {.tstr=NULL};
-    size_t col = 0, row = 0;
+    size_t col = 0, row = 1;
     tok_clear(&t);
 
     struct TokenError terr;
@@ -139,6 +139,7 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
             } else {
                 return te(P_STATE_INVALID_CHARACTER_OPENING_OPTION_DEL, col, row); // invalid char - found [ in ID
             }
+            col++;
 
         } else if (c == ']') {
             if (t.ttype == TOK_TEXT) {
@@ -147,6 +148,7 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
                 return te(P_STATE_INVALID_CHARACTER_CLOSING_OPTION_DEL, col, row); // invalid char - found ] in ID
             }
 
+            col++;
             section_count++;
             sections = realloc(sections, sizeof(struct Sec) * section_count);
             terr = construct_section(&tokens, sections + section_count - 1);
@@ -159,13 +161,16 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
 
             if (t.ttype == TOK_EMPTY) { t.ttype = TOK_ID; t.col = col; t.row = row; }
             else { return te(P_STATE_INVALID_CHARACTER_OPENING_ID_DEL, col, row); } // invalid char - found < inside ID
+            col++;
 
         } else if (isdigit(c)) {
             if (t.ttype == TOK_EMPTY) { t.ttype = TOK_TEXT; t.col = col; t.row = row; }
             if (t.ttype == TOK_TEXT || t.ttype == TOK_ID) { tok_addch(c, &t); }
             else { return te_un(); } // unreachable
+            col++;
 
         } else if (c == '>') {
+            col++;
             if (t.ttype == TOK_TEXT) {
                 add_token_to_list(&tokens, &t);
             }
@@ -180,11 +185,13 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
             if (t.ttype == TOK_EMPTY) { t.ttype = TOK_TEXT; t.col = col; t.row = row; }
             if (t.ttype == TOK_TEXT) { tok_addch(c, &t); }
             else if (t.ttype == TOK_ID) { return te(P_STATE_INVALID_CHAR_IN_ID, col, row); } // invalid char - non-numeric value inside ID
+            col++;
         }
 
         else if (is_whitespace(c)) {
+            col++;
             if (t.ttype == TOK_TEXT) { tok_addch(c, &t); }
-            if (c == '\n') { row++; col = 0; }
+            if (c == '\n') { row++; col = 1; }
         }
     }
 
