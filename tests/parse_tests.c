@@ -9,6 +9,7 @@
 FILE *stream;
 char *buffer;
 struct Adventure a;
+struct TokenError e;
 
 void setUp() {
     stream = NULL;
@@ -27,6 +28,8 @@ void tearDown() {
 
 #define S &s[0]
 
+#define TEST_ASSERT_EQUAL_E_STATE(s)    TEST_ASSERT_EQUAL(e.state, s);
+
 static void construct_file_like_obj(char *s) {
     size_t ssize = strlen(s) + 1;
     buffer = malloc(sizeof(char) * ssize);
@@ -38,8 +41,9 @@ static void construct_file_like_obj(char *s) {
 static void parse_very_simple_and_short_str() {
     char s[] = "a\nb\nc\n<1>aksdjfask[<1> opcion 1 <2> opcion 2]";
     construct_file_like_obj(S);
+    e = parse(stream, &a);
 
-    TEST_ASSERT_EQUAL(P_STATE_OK, parse(stream, &a));
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_OK);
     TEST_ASSERT_EQUAL_STRING("a", a.title);
     TEST_ASSERT_EQUAL_STRING("b", a.author);
     TEST_ASSERT_EQUAL_STRING("c", a.version);
@@ -56,8 +60,9 @@ static void parse_very_simple_and_short_str() {
 static void parse_correct_syntax_file_with_single_section() {
     char s[] = "    Adventure1 \nCristian Gotchev\nv0\n<0> Once upon a time\n[<0> Twice upon a time]";
     construct_file_like_obj(S);
+    e = parse(stream, &a);
 
-    TEST_ASSERT_EQUAL(P_STATE_OK, parse(stream, &a));
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_OK);
     TEST_ASSERT_EQUAL_STRING("Adventure1", a.title);
     TEST_ASSERT_EQUAL_STRING("Cristian Gotchev", a.author);
     TEST_ASSERT_EQUAL_STRING("v0", a.version);
@@ -70,8 +75,9 @@ static void parse_correct_syntax_file_with_single_section() {
 static void parse_correct_syntax_file_with_two_sections() {
     char s[] = "A\nB\nv0\n\n<0> Section 0\n[ <1> option to 1\n <1> another option to 1]";
     construct_file_like_obj(S);
+    e = parse(stream, &a);
 
-    TEST_ASSERT_EQUAL(P_STATE_OK, parse(stream, &a));
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_OK);
     TEST_ASSERT_EQUAL_STRING("A", a.title);
     TEST_ASSERT_EQUAL_STRING("B", a.author);
     TEST_ASSERT_EQUAL_STRING("v0", a.version);
@@ -85,8 +91,9 @@ static void parse_correct_syntax_file_with_two_sections() {
 
 static void parse_text_file_1() {
     stream = fopen("tests/t1.txt", "r");
+    e = parse(stream, &a);
 
-    TEST_ASSERT_EQUAL(P_STATE_OK, parse(stream, &a));
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_OK);
     TEST_ASSERT_EQUAL_STRING("Adventure of a lifetime", a.title);
     TEST_ASSERT_EQUAL_STRING("Cristian Gotchev", a.author);
     TEST_ASSERT_EQUAL_STRING("v1", a.version);
@@ -114,57 +121,65 @@ static void parse_text_file_1() {
 static void parse_adventure_with_no_sections() {
     char s[] = "alksf\nalskdj\naksdljhf\n";
     construct_file_like_obj(S);
+    e = parse(stream, &a);
 
-    TEST_ASSERT_EQUAL(P_STATE_NO_SECTIONS_IN_ADVENTURE, parse(stream, &a));
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_NO_SECTIONS_IN_ADVENTURE);
 }
 
 static void parse_adventure_with_incorrect_id_syntax() {
     char s[] = "a\na\na\n<1a>";
     construct_file_like_obj(S);
+    e = parse(stream, &a);
 
-    TEST_ASSERT_EQUAL(P_STATE_INVALID_CHAR_IN_ID, parse(stream, &a));
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_INVALID_CHAR_IN_ID);
 }
 
 static void parse_adventure_with_incorrect_id_syntax_2() {
     char s[] = "a\na\na\n<1>s[<njn> asdfas]";
     construct_file_like_obj(S);
+    e = parse(stream, &a);
 
-    TEST_ASSERT_EQUAL(P_STATE_INVALID_CHAR_IN_ID, parse(stream, &a));
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_INVALID_CHAR_IN_ID);
 }
 
 static void parse_adventure_with_incorrect_option_syntax() {
     char s[] = "a\na\na\n<1>asfd[<1>]";
     construct_file_like_obj(S);
+    e = parse(stream, &a);
 
-    TEST_ASSERT_EQUAL(P_STATE_INVALID_SYNTAX_EXPECTED_TEXT, parse(stream, &a));
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_INVALID_SYNTAX_EXPECTED_TEXT);
 }
 
 static void parse_adventure_with_incorrect_option_syntax_2() {
     char s[] = "a\na\na\n<1>asfd[asfasd]";
     construct_file_like_obj(S);
+    e = parse(stream, &a);
 
-    TEST_ASSERT_EQUAL(P_STATE_INVALID_SYNTAX_EXPECTED_ID, parse(stream, &a));
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_INVALID_SYNTAX_EXPECTED_ID);
 }
 
 static void parse_adventure_with_incorrect_section_syntax() {
     char s[] = "a\na\na\n<1>[<1> asdfas]";
     construct_file_like_obj(S);
+    e = parse(stream, &a);
 
-    TEST_ASSERT_EQUAL(P_STATE_INVALID_SYNTAX_EXPECTED_TEXT, parse(stream, &a));
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_INVALID_SYNTAX_EXPECTED_TEXT);
 }
 
 static void parse_adventure_with_incorrect_section_syntax_2() {
     char s[] = "a\na\na\nasdkjf[<1> asdfas]";
     construct_file_like_obj(S);
+    e = parse(stream, &a);
 
-    TEST_ASSERT_EQUAL(P_STATE_INVALID_SYNTAX_EXPECTED_ID, parse(stream, &a));
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_INVALID_SYNTAX_EXPECTED_ID);
 }
 
 static void parse_adventure_empty_file() {
     char s[] = "";
     construct_file_like_obj(S);
+    e = parse(stream, &a);
 
-    TEST_ASSERT_EQUAL(P_STATE_MISSING_ADVENTURE_DATA, parse(stream, &a));
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_MISSING_ADVENTURE_DATA);
 }
 
 int main() {
