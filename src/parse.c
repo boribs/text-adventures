@@ -171,6 +171,8 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
             }
 
             if (t.ttype == TOK_ID) {
+                if (t.tstr == NULL) { return te(P_STATE_MISSING_ID_NUMBER, t.col, t.row); }
+
                 add_token_to_list(&tokens, &t);
             } else { return te(P_STATE_INVALID_CHARACTER_CLOSING_ID_DEL, col, row); } // invalid syntax - found > outside of ID
 

@@ -17,14 +17,15 @@ enum ParseState {
     P_STATE_INVALID_CHARACTER_OPENING_OPTION_DEL, // 4
     P_STATE_INVALID_CHARACTER_CLOSING_OPTION_DEL, // 5
     P_STATE_INVALID_CHAR_IN_ID,                   // 6
-    P_STATE_INVALID_LAST_TOKEN,                   // 7
-    P_STATE_MISSING_ADVENTURE_DATA,               // 8
-    P_STATE_MISSING_AUTHOR,                       // 9
-    P_STATE_MISSING_VERSION,                      // 10
-    P_STATE_INVALID_SYNTAX_EXPECTED_TEXT,         // 11
-    P_STATE_INVALID_SYNTAX_EXPECTED_ID,           // 12
-    P_STATE_TOO_MANY_OPTIONS_IN_SECTION,          // 13
-    P_STATE_NO_SECTIONS_IN_ADVENTURE,             // 14
+    P_STATE_MISSING_ID_NUMBER,                    // 7
+    P_STATE_INVALID_LAST_TOKEN,                   // 8
+    P_STATE_MISSING_ADVENTURE_DATA,               // 9
+    P_STATE_MISSING_AUTHOR,                       // 10
+    P_STATE_MISSING_VERSION,                      // 11
+    P_STATE_INVALID_SYNTAX_EXPECTED_TEXT,         // 12
+    P_STATE_INVALID_SYNTAX_EXPECTED_ID,           // 13
+    P_STATE_TOO_MANY_OPTIONS_IN_SECTION,          // 14
+    P_STATE_NO_SECTIONS_IN_ADVENTURE,             // 15
 };
 
 enum TokenType {
