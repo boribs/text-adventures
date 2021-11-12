@@ -5,21 +5,31 @@
 #include "parse.h"
 #include "adventure.h"
 
-static void show_parse_state(enum ParseState p) {
-    switch(p) {
-        case P_STATE_OK: P_STATE_UNREACHABLE: break;
+static void show_error_message(char *filename, struct TokenError terr) {
+    if (terr.state == P_STATE_OK) return;
+
+    switch(terr.state) {
+        case P_STATE_UNREACHABLE: break;
         case P_STATE_INVALID_CHARACTER_OPENING_ID_DEL:
+            printf("%s:%zu:%zu: ", filename, terr.row, terr.col);
             printf("Can't have `<` inside ID tag.\n");break;
         case P_STATE_INVALID_CHARACTER_CLOSING_ID_DEL:
+            printf("%s:%zu:%zu: ", filename, terr.row, terr.col);
             printf("Can't have `>` outside ID tag.\n");break;
+        case P_STATE_MISSING_ID_NUMBER:
+            printf("%s:%zu:%zu: ", filename, terr.row, terr.col);
+            printf("IDs must have a number: for example <3>.\n");break;
         case P_STATE_INVALID_CHARACTER_OPENING_OPTION_DEL:
+            printf("%s:%zu:%zu: ", filename, terr.row, terr.col);
             printf("Can't have `[` in ID tag.\n");break;
         case P_STATE_INVALID_CHARACTER_CLOSING_OPTION_DEL:
+            printf("%s:%zu:%zu: ", filename, terr.row, terr.col);
             printf("Can't have `]` in ID tag.\n");break;
         case P_STATE_INVALID_CHAR_IN_ID:
+            printf("%s:%zu:%zu: ", filename, terr.row, terr.col);
             printf("Found invalid character in ID\n");break;
         case P_STATE_INVALID_LAST_TOKEN:
-            printf("The last thing in the file should be `]`\n");break;
+            printf("The last thing in the file should be `]`. Unclosed section?\n");break;
         case P_STATE_MISSING_ADVENTURE_DATA:
             printf("The first lines in the file should be: title, author, version\n");break;
         case P_STATE_MISSING_AUTHOR:
@@ -27,10 +37,13 @@ static void show_parse_state(enum ParseState p) {
         case P_STATE_MISSING_VERSION:
             printf("Version not provided.\n");break;
         case P_STATE_INVALID_SYNTAX_EXPECTED_TEXT:
+            printf("%s:%zu:%zu: ", filename, terr.row, terr.col);
             printf("Expected text, got something else.\n");break;
         case P_STATE_INVALID_SYNTAX_EXPECTED_ID:
+            printf("%s:%zu:%zu: ", filename, terr.row, terr.col);
             printf("Expected ID, got something else.\n");break;
         case P_STATE_TOO_MANY_OPTIONS_IN_SECTION:
+            printf("%s:%zu:%zu: ", filename, terr.row, terr.col);
             printf("Section has too many options. The maximum is 5.\n");break;
         case P_STATE_NO_SECTIONS_IN_ADVENTURE:
             printf("The adventure should have at least one section!\n");break;
@@ -43,9 +56,9 @@ static bool load_adventure(char *filename, struct Adventure *a) {
     FILE *f = fopen(filename, "r");
     if (f == NULL) return false;
 
-    enum ParseState p = parse(f, a);
-    show_parse_state(p);
-    if (p != P_STATE_OK) return false;
+    struct TokenError e = parse(f, a);
+    show_error_message(filename, e);
+    if (e.state != P_STATE_OK) return false;
 
     fclose(f);
     a->current_section = &a->sections[0];

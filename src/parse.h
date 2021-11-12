@@ -17,14 +17,15 @@ enum ParseState {
     P_STATE_INVALID_CHARACTER_OPENING_OPTION_DEL, // 4
     P_STATE_INVALID_CHARACTER_CLOSING_OPTION_DEL, // 5
     P_STATE_INVALID_CHAR_IN_ID,                   // 6
-    P_STATE_INVALID_LAST_TOKEN,                   // 7
-    P_STATE_MISSING_ADVENTURE_DATA,               // 8
-    P_STATE_MISSING_AUTHOR,                       // 9
-    P_STATE_MISSING_VERSION,                      // 10
-    P_STATE_INVALID_SYNTAX_EXPECTED_TEXT,         // 11
-    P_STATE_INVALID_SYNTAX_EXPECTED_ID,           // 12
-    P_STATE_TOO_MANY_OPTIONS_IN_SECTION,          // 13
-    P_STATE_NO_SECTIONS_IN_ADVENTURE,             // 14
+    P_STATE_MISSING_ID_NUMBER,                    // 7
+    P_STATE_INVALID_LAST_TOKEN,                   // 8
+    P_STATE_MISSING_ADVENTURE_DATA,               // 9
+    P_STATE_MISSING_AUTHOR,                       // 10
+    P_STATE_MISSING_VERSION,                      // 11
+    P_STATE_INVALID_SYNTAX_EXPECTED_TEXT,         // 12
+    P_STATE_INVALID_SYNTAX_EXPECTED_ID,           // 13
+    P_STATE_TOO_MANY_OPTIONS_IN_SECTION,          // 14
+    P_STATE_NO_SECTIONS_IN_ADVENTURE,             // 15
 };
 
 enum TokenType {
@@ -39,12 +40,36 @@ struct Token {
     enum TokenType ttype;
     char *tstr;
     size_t tstr_max_len;
+    size_t col;
+    size_t row;
 };
 
 struct TokenList {
     struct Token *list;
     size_t count;
 };
+
+struct TokenError {
+    enum ParseState state;
+    size_t col;
+    size_t row;
+};
+
+static struct TokenError te(enum ParseState state, size_t col, size_t row) {
+    return (struct TokenError) {
+        .state = state,
+        .col = col,
+        .row = row,
+    };
+}
+
+static struct TokenError te_ok() {
+    return (struct TokenError) { .state = P_STATE_OK };
+}
+
+static struct TokenError te_un() { // unreachable
+    return (struct TokenError) { .state = P_STATE_UNREACHABLE };
+}
 
 static void tok_addch(char c, struct Token *t) {
     if (t->tstr == NULL) {
@@ -85,6 +110,6 @@ static struct Token tok_pop_last_token(struct TokenList *tl) {
     return last;
 }
 
-enum ParseState parse(FILE *file, struct Adventure *a);
+struct TokenError parse(FILE *file, struct Adventure *a);
 
 #endif // TEXT_ADVENTURES_PARSE
