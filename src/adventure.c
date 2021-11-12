@@ -1,9 +1,16 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <stdbool.h>
+#include <sys/ioctl.h>
+#include <unistd.h>
 
 #include "common.h"
 #include "parse.h"
 #include "adventure.h"
+
+struct winsize w; // terminal size
+int col = 0; // cursor position
 
 static void show_error_message(char *filename, struct TokenError terr) {
     if (terr.state == P_STATE_OK) return;
@@ -66,18 +73,61 @@ static bool load_adventure(char *filename, struct Adventure *a) {
     return true;
 }
 
+static void print_n_chars(char *str, size_t n) {
+    for (size_t i = 0; i < n; ++i) {
+        printf("%c", *(str + i));
+    }
+}
+
+static void print_boxed_text(char *str, int trailing_nl) {
+    char text[strlen(str) + 1], del;
+    strcpy(text, str);
+    size_t tok_len;
+
+    char *tok = strtok(text, " \n");
+    while (tok != NULL) {
+        tok_len = strlen(tok);
+        del = str[tok - text + tok_len];
+
+        if (tok_len < w.ws_col - col) {
+            printf("%s", tok);
+        } else {
+            printf("\n%s", tok);
+            col = 0;
+        }
+
+        if (del == ' ') {
+            printf(" ");
+            col++;
+        } else if (del == '\n') {
+            printf("\n");
+            col = 0;
+        }
+
+        col += tok_len;
+        tok = strtok(NULL, " \n");
+    }
+
+    for (int i = 0; i < trailing_nl; ++i) {
+        col = 0;
+        printf("\n");
+    }
+}
+
 static void show_adventure_data(struct Adventure *a) {
-    printf("%s\n", a->title);
-    printf("by %s\n", a->author);
-    printf("%s\n\n", a->version);
+    print_boxed_text(a->title, 1);
+    print_boxed_text(a->author, 1);
+    print_boxed_text(a->version, 2);
 }
 
 static void show_option(size_t num, struct Opt *o) {
-    printf("%zu) %s\n", num + 1, o->text);
+    col = 3;
+    printf("%zu) ", num + 1);
+    print_boxed_text(o->text, 1);
 }
 
 static void show_section(struct Sec *s) {
-    printf("%s\n\n\n", s->text);
+    print_boxed_text(s->text, 2);
 
     for (size_t i = 0; i < s->opt_count; ++i) {
         show_option(i, &s->options[i]);
@@ -133,12 +183,15 @@ static enum InputOptions get_input(struct Adventure *a) {
 }
 
 void play_adventure(char *filename) {
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w); // get terminal size
+
     struct Adventure a;
 
     if (!load_adventure(filename, &a)) {
         exit(1);
     }
 
+    // system("clear");
     show_adventure_data(&a);
     show_current_section(&a);
 
