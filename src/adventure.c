@@ -4,13 +4,15 @@
 #include <stdbool.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <termios.h>
 
 #include "common.h"
 #include "parse.h"
 #include "adventure.h"
 
-struct winsize w; // terminal size
+struct winsize w;
 int col = 0; // cursor position
+struct termios t;
 
 static void show_error_message(char *filename, struct TokenError terr) {
     if (terr.state == P_STATE_OK) return;
@@ -201,20 +203,30 @@ static enum InputOptions get_input(struct Adventure *a) {
     char input;
     enum InputOptions i;
 
+    printf(" | > ");
     do {
         fflush(stdin);
-        printf(" | > ");
         scanf("%c", &input);
         i = validate_input(input, a);
     } while(i == ADVENTURE_INPUT_INVALID);
 
+    printf("%c", input);
+    col = 6;
+
     if (i == ADVENTURE_INPUT_QUIT) print_border_line();
-    else                           print_empty_line();
+    else {
+        complete_empty_line(false);
+        print_empty_line();
+    }
 
     return i;
 }
 
 void play_adventure(char *filename) {
+    tcgetattr(0, &t);
+    t.c_lflag &= ~(ECHO|ICANON);
+    tcsetattr(0, TCSANOW, &t);
+
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w); // get terminal size
 
     struct Adventure a;
