@@ -75,12 +75,6 @@ static bool load_adventure(char *filename, struct Adventure *a) {
     return true;
 }
 
-static void print_n_chars(char *str, size_t n) {
-    for (size_t i = 0; i < n; ++i) {
-        printf("%c", *(str + i));
-    }
-}
-
 static void print_empty_line() {
     printf(" |"); for (int i = 0; i < w.ws_col - 4; ++i) printf(" "); printf("|\n");
 }
@@ -115,10 +109,22 @@ static void print_boxed_text(char *str, int trailing_nl) {
         del = str[tok - text + tok_len];
 
         if (tok_len >= w.ws_col - col - 3) {
-            // TODO: break up really long words to fit
             complete_empty_line(true);
+
+            // split word into chunks
+            for (size_t i = 0; i < tok_len; ++i) {
+                if (col == w.ws_col - 3) {
+                    complete_empty_line(true);
+                }
+
+                col++;
+                printf("%c", *(tok + i));
+            }
+            tok_len = 0;
+
+        } else {
+            printf("%s", tok);
         }
-        printf("%s", tok);
 
         col += tok_len;
         if (del == ' ') {
