@@ -180,7 +180,7 @@ static bool end_of_adventure(struct Adventure *a) {
 static enum InputOptions validate_input(char input, struct Adventure *a) {
     int i = input - '0' - 1;
 
-    if (i >= 0 && i <= a->current_section->opt_count) {
+    if (i >= 0 && i < a->current_section->opt_count) {
         return (enum InputOptions)i;
     } else if (input == KEY_QUIT) {
         return ADVENTURE_INPUT_QUIT;
