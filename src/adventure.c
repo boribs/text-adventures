@@ -79,60 +79,82 @@ static void print_n_chars(char *str, size_t n) {
     }
 }
 
+static void print_empty_line() {
+    printf(" |"); for (int i = 0; i < w.ws_col - 4; ++i) printf(" "); printf("|\n");
+}
+
+static void print_border_line() {
+    printf(" +"); for (int i = 0; i < w.ws_col - 4; ++i) printf("-"); printf("+\n");
+}
+
 static void print_boxed_text(char *str, int trailing_nl) {
     char text[strlen(str) + 1], del;
     strcpy(text, str);
     size_t tok_len;
+
+    if (col == 0) {
+        printf(" | ");
+        col = 3;
+    }
 
     char *tok = strtok(text, " \n");
     while (tok != NULL) {
         tok_len = strlen(tok);
         del = str[tok - text + tok_len];
 
-        if (tok_len < w.ws_col - col) {
-            printf("%s", tok);
-        } else {
-            printf("\n%s", tok);
-            col = 0;
+        if (tok_len >= w.ws_col - col - 3) {
+            for (int i = col; i < w.ws_col - 2; ++i) printf(" "); printf("|\n | ");
+            col = 3;
         }
+        printf("%s", tok);
 
         col += tok_len;
         if (del == ' ') {
             col++;
             if (col < w.ws_col) printf(" ");
         } else if (del == '\n') {
-            printf("\n");
-            col = 0;
+            for (int i = col; i < w.ws_col - 2; ++i) printf(" "); printf("|\n | ");
+            col = 3;
         }
 
         tok = strtok(NULL, " \n");
     }
 
+    for (int i = col; i < w.ws_col - 2; ++i) printf(" "); printf("|\n");
+    col = 0;
+
     for (int i = 0; i < trailing_nl; ++i) {
-        col = 0;
-        printf("\n");
+        print_empty_line();
     }
 }
 
 static void show_adventure_data(struct Adventure *a) {
-    print_boxed_text(a->title, 1);
-    print_boxed_text(a->author, 1);
-    print_boxed_text(a->version, 2);
+    print_border_line();
+    print_boxed_text(a->title, 0);
+    print_boxed_text(a->author, 0);
+    print_boxed_text(a->version, 1);
 }
 
 static void show_option(size_t num, struct Opt *o) {
-    col = 3;
-    printf("%zu) ", num + 1);
-    print_boxed_text(o->text, 1);
+    col = 6;
+    printf(" | %zu) ", num + 1);
+    print_boxed_text(o->text, 0);
 }
 
 static void show_section(struct Sec *s) {
-    print_boxed_text(s->text, 2);
+    print_boxed_text(s->text, 0);
 
-    for (size_t i = 0; i < s->opt_count; ++i) {
-        show_option(i, &s->options[i]);
+    if (s->opt_count != 0) {
+        print_empty_line();
+        print_empty_line();
+
+        for (size_t i = 0; i < s->opt_count; ++i) {
+            show_option(i, &s->options[i]);
+        }
+        print_empty_line();
+    } else {
+        print_border_line();
     }
-    printf("\n");
 }
 
 static void show_current_section(struct Adventure *a) {
@@ -173,12 +195,12 @@ static enum InputOptions get_input(struct Adventure *a) {
 
     do {
         fflush(stdin);
-        printf("> ");
+        printf(" | > ");
         scanf("%c", &input);
         i = validate_input(input, a);
     } while(i == ADVENTURE_INPUT_INVALID);
 
-    printf("\n");
+    print_empty_line();
     return i;
 }
 
@@ -191,7 +213,7 @@ void play_adventure(char *filename) {
         exit(1);
     }
 
-    // system("clear");
+    system("clear");
     show_adventure_data(&a);
     show_current_section(&a);
 
