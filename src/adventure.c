@@ -200,7 +200,9 @@ static enum InputOptions get_input(struct Adventure *a) {
         i = validate_input(input, a);
     } while(i == ADVENTURE_INPUT_INVALID);
 
-    print_empty_line();
+    if (i == ADVENTURE_INPUT_QUIT) print_border_line();
+    else                           print_empty_line();
+
     return i;
 }
 
