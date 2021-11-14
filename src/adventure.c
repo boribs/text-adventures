@@ -240,17 +240,17 @@ static enum InputOptions get_input(struct Adventure *a) {
 }
 
 void play_adventure(char *filename) {
-    tcgetattr(0, &t);
-    t.c_lflag &= ~(ECHO|ICANON);
-    tcsetattr(0, TCSANOW, &t);
-
-    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w); // get terminal size
-
     struct Adventure a;
 
     if (!load_adventure(filename, &a)) {
         exit(1);
     }
+
+    tcgetattr(0, &t);
+    t.c_lflag &= ~(ECHO|ICANON);
+    tcsetattr(0, TCSANOW, &t);
+
+    ioctl(STDOUT_FILENO, TIOCGWINSZ, &w); // get terminal size
 
     system("clear");
     show_adventure_data(&a);
