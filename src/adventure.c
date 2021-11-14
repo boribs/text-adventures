@@ -115,6 +115,7 @@ static void print_boxed_text(char *str, int trailing_nl) {
         del = str[tok - text + tok_len];
 
         if (tok_len >= w.ws_col - col - 3) {
+            // TODO: break up really long words to fit
             complete_empty_line(true);
         }
         printf("%s", tok);
@@ -212,13 +213,10 @@ static enum InputOptions get_input(struct Adventure *a) {
 
     printf("%c", input);
     col = 6;
+    complete_empty_line(false);
 
     if (i == ADVENTURE_INPUT_QUIT) print_border_line();
-    else {
-        complete_empty_line(false);
-        print_empty_line();
-    }
-
+    else                           print_empty_line();
     return i;
 }
 
