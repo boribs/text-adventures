@@ -87,6 +87,16 @@ static void print_border_line() {
     printf(" +"); for (int i = 0; i < w.ws_col - 4; ++i) printf("-"); printf("+\n");
 }
 
+static void complete_empty_line(bool add_lpad) {
+    for (int i = col; i < w.ws_col - 2; ++i) printf(" "); printf("|\n");
+    col = 0;
+
+    if (add_lpad) {
+        printf(" | ");
+        col = 3;
+    }
+}
+
 static void print_boxed_text(char *str, int trailing_nl) {
     char text[strlen(str) + 1], del;
     strcpy(text, str);
@@ -103,8 +113,7 @@ static void print_boxed_text(char *str, int trailing_nl) {
         del = str[tok - text + tok_len];
 
         if (tok_len >= w.ws_col - col - 3) {
-            for (int i = col; i < w.ws_col - 2; ++i) printf(" "); printf("|\n | ");
-            col = 3;
+            complete_empty_line(true);
         }
         printf("%s", tok);
 
@@ -113,14 +122,13 @@ static void print_boxed_text(char *str, int trailing_nl) {
             col++;
             if (col < w.ws_col) printf(" ");
         } else if (del == '\n') {
-            for (int i = col; i < w.ws_col - 2; ++i) printf(" "); printf("|\n | ");
-            col = 3;
+            complete_empty_line(true);
         }
 
         tok = strtok(NULL, " \n");
     }
 
-    for (int i = col; i < w.ws_col - 2; ++i) printf(" "); printf("|\n");
+    complete_empty_line(false);
     col = 0;
 
     for (int i = 0; i < trailing_nl; ++i) {
