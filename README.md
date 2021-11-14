@@ -20,5 +20,4 @@ It reads files that follow this syntax:
 ]
 ```
 
-The first four lines have to be that way, no newlines allowed at the beginning.
 Check out the [examples](examples)!
