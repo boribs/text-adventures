@@ -76,21 +76,31 @@ static bool load_adventure(char *filename, struct Adventure *a) {
 }
 
 static void print_empty_line() {
-    printf(" |"); for (int i = 0; i < w.ws_col - 4; ++i) printf(" "); printf("|\n");
+    for (int i = 0; i < L_O_PADDING; ++i) printf(" ");
+    printf("|");
+    for (int i = 0; i < w.ws_col - O_PADDING - 2; ++i) printf(" ");
+    printf("|\n");
 }
 
 static void print_border_line() {
-    printf(" +"); for (int i = 0; i < w.ws_col - 4; ++i) printf("-"); printf("+\n");
+    for (int i = 0; i < L_O_PADDING; ++i) printf(" ");
+    printf("+");
+    for (int i = 0; i < w.ws_col - O_PADDING - 2; ++i) printf("-");
+    printf("+\n");
 }
 
-static void complete_empty_line(bool add_lpad) {
-    for (int i = col; i < w.ws_col - 2; ++i) printf(" "); printf("|\n");
+static void print_lborder() {
+    for (int i = 0; i < L_O_PADDING; ++i) printf(" ");
+    printf("|");
+    for (int i = 0; i < L_I_PADDING; ++i) printf(" ");
+    col = 1 + L_PADDING;
+}
+
+static void complete_empty_line(bool add_lborder) {
+    for (int i = col; i < w.ws_col - R_O_PADDING - 1; ++i) printf(" "); printf("|\n");
     col = 0;
 
-    if (add_lpad) {
-        printf(" | ");
-        col = 3;
-    }
+    if (add_lborder) print_lborder();
 }
 
 static void print_boxed_text(char *str, int trailing_nl) {
@@ -99,8 +109,7 @@ static void print_boxed_text(char *str, int trailing_nl) {
     size_t tok_len;
 
     if (col == 0) {
-        printf(" | ");
-        col = 3;
+        print_lborder();
     }
 
     char *tok = strtok(text, " \n");
@@ -108,12 +117,12 @@ static void print_boxed_text(char *str, int trailing_nl) {
         tok_len = strlen(tok);
         del = str[tok - text + tok_len];
 
-        if (tok_len >= w.ws_col - col - 3) {
+        if (tok_len >= w.ws_col - col - R_PADDING) {
             complete_empty_line(true);
 
             // split word into chunks
             for (size_t i = 0; i < tok_len; ++i) {
-                if (col == w.ws_col - 3) {
+                if (col == w.ws_col - R_PADDING) {
                     complete_empty_line(true);
                 }
 
@@ -153,8 +162,11 @@ static void show_adventure_data(struct Adventure *a) {
 }
 
 static void show_option(size_t num, struct Opt *o) {
-    col = 6;
-    printf(" | %zu) ", num + 1);
+    print_lborder();
+
+    printf("%zu) ", num + 1);
+    col += 3;
+
     print_boxed_text(o->text, 0);
 }
 
@@ -210,7 +222,8 @@ static enum InputOptions get_input(struct Adventure *a) {
     char input;
     enum InputOptions i;
 
-    printf(" | > ");
+    print_lborder();
+    printf("> ");
     do {
         fflush(stdin);
         scanf("%c", &input);
@@ -218,7 +231,7 @@ static enum InputOptions get_input(struct Adventure *a) {
     } while(i == ADVENTURE_INPUT_INVALID);
 
     printf("%c", input);
-    col = 6;
+    col += 3;
     complete_empty_line(false);
 
     if (i == ADVENTURE_INPUT_QUIT) print_border_line();
