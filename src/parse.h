@@ -30,6 +30,7 @@ enum ParseState {
     P_STATE_VERY_FEW_SECTIONS_IN_ADVENTURE,       // 16
     P_STATE_REPEATED_SECTION_ID,                  // 17
     P_STATE_SELF_POINTING_SECTION,                // 18
+    P_STATE_UNREACHABLE_SECTION,                  // 19
 };
 
 enum TokenType {

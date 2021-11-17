@@ -60,6 +60,8 @@ static void show_error_message(char *filename, struct TokenError terr) {
             printf("Repeated section id <%zu>\n", terr.col);break;
         case P_STATE_SELF_POINTING_SECTION:
             printf("One of section %zu's options points to itself.\n", terr.col); break;
+        case P_STATE_UNREACHABLE_SECTION:
+        printf("Section %zu is unreachable.\n", terr.col);break;
         default:
             break; // unreachable
     }

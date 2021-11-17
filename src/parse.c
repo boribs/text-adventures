@@ -248,6 +248,29 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
         }
     }
 
+    // check for unreachable sections
+    for (size_t i = 1; i < section_count; ++i) {
+        size_t id = sections[i].id;
+        bool found = false;
+
+        for (size_t j = 0; j < section_count; ++j) {
+            if (i == j) continue;
+
+            for (size_t o = 0; o < sections[j].opt_count; ++o) {
+                if (sections[j].options[o].sec_id == id) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (found) break;
+        }
+
+        if (!found) {
+            return te(P_STATE_UNREACHABLE_SECTION, id, 0);
+        }
+    }
+
     a->sections = sections;
     a->sec_count = section_count;
 
