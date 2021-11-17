@@ -271,6 +271,27 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
         }
     }
 
+    // check for nonexistent sections
+    for (size_t i = 0; i < section_count; ++i) {
+        for (size_t o = 0; o < sections[i].opt_count; ++o) {
+            size_t oid = sections[i].options[o].sec_id;
+            bool found = false;
+
+            for (size_t j = 0; j < section_count; ++j) {
+                if (i == j) continue;
+
+                if (sections[j].id == oid) {
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                return te(P_STATE_NONEXISTENT_SECTION, sections[i].id, oid);
+            }
+        }
+    }
+
     a->sections = sections;
     a->sec_count = section_count;
 

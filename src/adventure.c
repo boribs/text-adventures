@@ -61,7 +61,9 @@ static void show_error_message(char *filename, struct TokenError terr) {
         case P_STATE_SELF_POINTING_SECTION:
             printf("One of section %zu's options points to itself.\n", terr.col); break;
         case P_STATE_UNREACHABLE_SECTION:
-        printf("Section %zu is unreachable.\n", terr.col);break;
+            printf("Section %zu is unreachable.\n", terr.col);break;
+        case P_STATE_NONEXISTENT_SECTION:
+            printf("Section %zu points to non existent section (%zu).\n", terr.col, terr.row);break;
         default:
             break; // unreachable
     }
