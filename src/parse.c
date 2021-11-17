@@ -239,6 +239,15 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
         }
     }
 
+    // check for self-pointing section
+    for (size_t i = 0; i < section_count; ++i) {
+        for (size_t j = 0; j < sections[i].opt_count; ++j) {
+            if (sections[i].options[j].sec_id == sections[i].id) {
+                return te(P_STATE_SELF_POINTING_SECTION, sections[j].id, 0);
+            }
+        }
+    }
+
     a->sections = sections;
     a->sec_count = section_count;
 
