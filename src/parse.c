@@ -230,7 +230,7 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
 
     // check for repeated sections
     for (size_t i = 0; i < section_count; ++i) {
-        for (size_t j = 1; j < section_count; ++i) {
+        for (size_t j = 1; j < section_count; ++j) {
             if (i == j) continue;
 
             if (sections[i].id == sections[j].id) {
