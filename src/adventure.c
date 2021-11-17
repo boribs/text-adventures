@@ -56,6 +56,8 @@ static void show_error_message(char *filename, struct TokenError terr) {
             printf("Section has too many options. The maximum is 5.\n");break;
         case P_STATE_NO_SECTIONS_IN_ADVENTURE: case P_STATE_VERY_FEW_SECTIONS_IN_ADVENTURE:
             printf("The adventure should have at least two sections!\n");break;
+        case P_STATE_REPEATED_SECTION_ID:
+            printf("Repeated section id <%zu>\n", terr.col);break;
         default:
             break; // unreachable
     }
