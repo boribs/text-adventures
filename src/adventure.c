@@ -58,6 +58,8 @@ static void show_error_message(char *filename, struct TokenError terr) {
             printf("The adventure should have at least two sections!\n");break;
         case P_STATE_REPEATED_SECTION_ID:
             printf("Repeated section id <%zu>\n", terr.col);break;
+        case P_STATE_SELF_POINTING_SECTION:
+            printf("One of section %zu's options points to itself.\n", terr.col); break;
         default:
             break; // unreachable
     }
