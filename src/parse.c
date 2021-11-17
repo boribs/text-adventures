@@ -196,10 +196,12 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
     }
 
     if (t.ttype != TOK_EMPTY) {
-        if (section_count == 0) return te(P_STATE_NO_SECTIONS_IN_ADVENTURE, 0, 0);
-
         return te(P_STATE_INVALID_LAST_TOKEN, 0, 0); // last token should be "]", which
                                                      // is handled on read
+    }
+
+    if (section_count < MIN_SECTION_COUNT) {
+        return te(P_STATE_VERY_FEW_SECTIONS_IN_ADVENTURE, 0, 0);
     }
 
     t = tok_pop_last_token(&tokens);
