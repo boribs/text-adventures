@@ -154,8 +154,13 @@ static void parse_adventure_empty_file() {
     TEST_ASSERT_NOT_EQUAL(P_STATE_OK, e.state);
 }
 
-// static void parse_error_too_many_options_in_section() {
-// }
+static void parse_error_too_many_options_in_section() {
+    char s[] = "a\na\na\n<0>asdkjf[<1>a<1>a<1>a<1>a<1>a<1>a<1>a]";
+    construct_file_like_obj(S);
+    e = parse(stream, &a);
+
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_TOO_MANY_OPTIONS_IN_SECTION);
+}
 
 int main() {
     UnityBegin("tests/parse_tests.c");
@@ -170,6 +175,7 @@ int main() {
     RUN_TEST(parse_adventure_with_incorrect_section_syntax);
     RUN_TEST(parse_adventure_with_incorrect_section_syntax_2);
     RUN_TEST(parse_adventure_empty_file);
+    RUN_TEST(parse_error_too_many_options_in_section);
 
     return UnityEnd();
 }
