@@ -28,7 +28,7 @@ void tearDown() {
 
 #define S &s[0]
 
-#define TEST_ASSERT_EQUAL_E_STATE(s)    TEST_ASSERT_EQUAL(e.state, s);
+#define TEST_ASSERT_EQUAL_E_STATE(s)    TEST_ASSERT_EQUAL(s, e.state);
 
 static void construct_file_like_obj(char *s) {
     size_t ssize = strlen(s) + 1;
@@ -39,7 +39,7 @@ static void construct_file_like_obj(char *s) {
 }
 
 static void parse_very_simple_and_short_str() {
-    char s[] = "a\nb\nc\n<1>aksdjfask[<1> opcion 1 <2> opcion 2]";
+    char s[] = "a\nb\nc\n <0> aksdjfask[<1> opcion 1] <1> aksdjfask[<0> opcion 2]";
     construct_file_like_obj(S);
     e = parse(stream, &a);
 
@@ -47,14 +47,18 @@ static void parse_very_simple_and_short_str() {
     TEST_ASSERT_EQUAL_STRING("a", a.title);
     TEST_ASSERT_EQUAL_STRING("b", a.author);
     TEST_ASSERT_EQUAL_STRING("c", a.version);
-    TEST_ASSERT_EQUAL(1, a.sec_count);
-    TEST_ASSERT_EQUAL(1, a.sections[0].id);
+
+    TEST_ASSERT_EQUAL(2, a.sec_count);
+
+    TEST_ASSERT_EQUAL(0, a.sections[0].id);
     TEST_ASSERT_EQUAL_STRING("aksdjfask", a.sections[0].text);
-    TEST_ASSERT_EQUAL(2, a.sections[0].opt_count);
+    TEST_ASSERT_EQUAL(1, a.sections[0].opt_count);
     TEST_ASSERT_EQUAL_STRING("opcion 1", a.sections[0].options[0].text);
-    TEST_ASSERT_EQUAL(1, a.sections[0].options[0].sec_id);
-    TEST_ASSERT_EQUAL_STRING("opcion 2", a.sections[0].options[1].text);
-    TEST_ASSERT_EQUAL(2, a.sections[0].options[1].sec_id);
+
+    TEST_ASSERT_EQUAL(1, a.sections[1].id);
+    TEST_ASSERT_EQUAL_STRING("aksdjfask", a.sections[1].text);
+    TEST_ASSERT_EQUAL(0, a.sections[1].options[0].sec_id);
+    TEST_ASSERT_EQUAL_STRING("opcion 2", a.sections[1].options[0].text);
 }
 
 static void parse_correct_syntax_file_with_single_section() {
