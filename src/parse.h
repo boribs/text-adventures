@@ -100,6 +100,9 @@ static void tok_clear(struct Token *t) {
 
 static void tok_add_token(struct TokenList *tl, struct Token *t) {
     tl->count++;
+    if (t->tstr != NULL) {
+        t->tstr = realloc(t->tstr, sizeof(char) * (strlen(t->tstr) + 1));
+    }
     tl->list = realloc(tl->list, sizeof(struct Token) * tl->count);
 
     tl->list[tl->count - 1] = *t;
