@@ -61,19 +61,12 @@ static void parse_very_simple_and_short_str() {
     TEST_ASSERT_EQUAL_STRING("opcion 2", a.sections[1].options[0].text);
 }
 
-static void parse_correct_syntax_file_with_single_section() {
+static void parse_correct_syntax_file_with_single_section() { // expect error
     char s[] = "    Adventure1 \nCristian Gotchev\nv0\n<0> Once upon a time\n[<0> Twice upon a time]";
     construct_file_like_obj(S);
     e = parse(stream, &a);
 
-    TEST_ASSERT_EQUAL_E_STATE(P_STATE_OK);
-    TEST_ASSERT_EQUAL_STRING("Adventure1", a.title);
-    TEST_ASSERT_EQUAL_STRING("Cristian Gotchev", a.author);
-    TEST_ASSERT_EQUAL_STRING("v0", a.version);
-    TEST_ASSERT_EQUAL_STRING("Once upon a time", a.sections[0].text);
-    TEST_ASSERT_EQUAL(1, a.sections[0].opt_count);
-    TEST_ASSERT_EQUAL(0, a.sections[0].options[0].sec_id);
-    TEST_ASSERT_EQUAL_STRING("Twice upon a time", a.sections[0].options[0].text);
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_VERY_FEW_SECTIONS_IN_ADVENTURE);
 }
 
 static void parse_correct_syntax_file_with_two_sections() {
@@ -185,6 +178,9 @@ static void parse_adventure_empty_file() {
 
     TEST_ASSERT_EQUAL_E_STATE(P_STATE_MISSING_ADVENTURE_DATA);
 }
+
+// static void parse_error_too_many_options_in_section() {
+// }
 
 int main() {
     UnityBegin("tests/parse_tests.c");
