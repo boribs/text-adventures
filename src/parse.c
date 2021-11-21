@@ -79,7 +79,7 @@ static struct TokenError construct_options(struct TokenList *tl, struct Sec *out
         out->options = NULL;
         free(options);
     } else {
-        out->options = options;
+        out->options = realloc(options, sizeof(struct Opt) * opt_count);
     }
     out->opt_count = opt_count;
 
