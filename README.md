@@ -21,3 +21,6 @@ It reads files that follow this syntax:
 ```
 
 Check out the [examples](examples)!
+
+As of 08/12/21 (dd/mm/yy), support for unicode was added!
+The UTF-8 single-header librery comes from [here](https://github.com/sheredom/utf8.h).
