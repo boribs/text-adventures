@@ -5,20 +5,20 @@
 
 #include "common.h"
 #include "parse.h"
-
-static bool is_valid_text_token_char(char c) {
-    return ((int)c >= 33 && (int)c <= 126);
-}
+#include "utf8.h"
 
 static bool is_whitespace(char c) {
     return c == ' ' || c == '\n' || c == '\t';
 }
 
-static char * trim_r(char *s) {
-    for (size_t i = strlen(s) - 1; i >= 0; --i) {
+static char *trim_r(char *s) {
+    for (size_t i = utf8size_lazy(s) - 1; i >= 0; --i) {
         if (!is_whitespace(s[i])) {
             s[i + 1] = 0;
-            return realloc(s, sizeof(char) * (i + 2));
+            char *n = utf8ndup(s, i + 1);
+            free(s);
+
+            return n;
         }
     }
 
@@ -106,6 +106,19 @@ static struct TokenError construct_section(struct TokenList *tl, struct Sec *s) 
     return te_ok();
 }
 
+static char *read_char(FILE *file, size_t *byte_count) {
+    *byte_count = 0;
+    char tmp[7] = { 0 }; // or however many bits a char can have
+    char *tptr = &tmp[0];
+
+    do {
+        fread(tptr++, 1, 1, file);
+        (*byte_count)++;
+    } while(utf8valid(tmp) != 0);
+
+    return utf8dup(tmp);
+}
+
 struct TokenError parse(FILE *file, struct Adventure *a) {
     struct Sec *sections = NULL;
     size_t section_count = 0;
@@ -118,7 +131,13 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
     struct TokenError terr;
 
     while (!feof(file)) {
-        char c = getc(file);
+        size_t byte_count = 0;
+        char *char_str = read_char(file, &byte_count); // does this need to be free'd?
+
+        int c = -1;
+        if (byte_count == 1) {
+            c = *char_str;
+        }
 
         if (c == '[') {
             if (t.ttype == TOK_TEXT) {
@@ -157,7 +176,7 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
 
         } else if (isdigit(c)) {
             if (t.ttype == TOK_EMPTY) { t.ttype = TOK_TEXT; t.col = col; t.row = row; }
-            if (t.ttype == TOK_TEXT || t.ttype == TOK_ID) { tok_addch(c, &t); }
+            if (t.ttype == TOK_TEXT || t.ttype == TOK_ID) { tok_addch(char_str, byte_count, &t); }
             else { return te_un(); } // unreachable
             col++;
 
@@ -173,17 +192,18 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
                 add_token_to_list(&tokens, &t);
             } else { return te(P_STATE_INVALID_CHARACTER_CLOSING_ID_DEL, col, row); } // invalid syntax - found > outside of ID
 
-        } else if (is_valid_text_token_char(c)) {
+        } else if (is_whitespace(c)) {
+            col++;
+            if (t.ttype == TOK_TEXT) { tok_addch(char_str, byte_count, &t); }
+            if (c == '\n') { row++; col = 1; }
+
+        } else {
+            if (c == 0) continue;
+
             if (t.ttype == TOK_EMPTY) { t.ttype = TOK_TEXT; t.col = col; t.row = row; }
-            if (t.ttype == TOK_TEXT) { tok_addch(c, &t); }
+            if (t.ttype == TOK_TEXT) { tok_addch(char_str, byte_count, &t); }
             else if (t.ttype == TOK_ID) { return te(P_STATE_INVALID_CHAR_IN_ID, col, row); } // invalid char - non-numeric value inside ID
             col++;
-        }
-
-        else if (is_whitespace(c)) {
-            col++;
-            if (t.ttype == TOK_TEXT) { tok_addch(c, &t); }
-            if (c == '\n') { row++; col = 1; }
         }
     }
 
@@ -199,22 +219,21 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
     t = tok_pop_last_token(&tokens);
     if (t.ttype != TOK_TEXT) return te(P_STATE_MISSING_ADVENTURE_DATA, 0, 0); // invalid first token - expected text
 
-    char tmp[strlen(t.tstr) + 1];
-    tmp[strlen(tmp)] = 0;
-    strcpy(tmp, t.tstr);
+    char tmp[utf8size(t.tstr)];
+    utf8cpy(tmp, t.tstr);
     free(t.tstr);
 
     char *tok = strtok(tmp, "\n");
     if (tok == NULL) return te_un(); // invalid first line - expected title
-    a->title = trim_r(strdup(tok));
+    a->title = trim_r(utf8dup(tok));
 
     tok = strtok(NULL, "\n");
     if (tok == NULL) return te(P_STATE_MISSING_AUTHOR, t.col, t.row); // invalid second line - expected author
-    a->author = trim_r(strdup(tok));
+    a->author = trim_r(utf8dup(tok));
 
     tok = strtok(NULL, "\n");
     if (tok == NULL) return te(P_STATE_MISSING_VERSION, t.col, t.row); // invalid third line - expected version
-    a->version = trim_r(strdup(tok));
+    a->version = trim_r(utf8dup(tok));
 
     // ignore the rest of the first token
 

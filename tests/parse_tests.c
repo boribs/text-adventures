@@ -19,6 +19,7 @@ void tearDown() {
     if (buffer != NULL) {
         free(buffer);
         buffer = NULL;
+        free(buffer);
     }
     if (stream != NULL) {
         fclose(stream);
@@ -162,6 +163,41 @@ static void parse_error_too_many_options_in_section() {
     TEST_ASSERT_EQUAL_E_STATE(P_STATE_TOO_MANY_OPTIONS_IN_SECTION);
 }
 
+static void parse_bulgarian_text() {
+    char s[] = "гасфкасйдхфлк\nкйфйкс\nафдсф\n<0>asdафs[<1>a]<1>asdfas[<0>a]";
+    construct_file_like_obj(S);
+    e = parse(stream, &a);
+
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_OK);
+    TEST_ASSERT_EQUAL_STRING("гасфкасйдхфлк", a.title);
+    TEST_ASSERT_EQUAL_STRING("кйфйкс", a.author);
+    TEST_ASSERT_EQUAL_STRING("asdафs", a.sections[0].text);
+    TEST_ASSERT_EQUAL_STRING("a", a.sections[0].options[0].text);
+}
+
+static void parse_accented_spanish_text() {
+    char s[] = "a\nb\nc\n <0> aksdjfask[<1> opción 1] <1> aksdjfask[<0> opción 2]";
+    construct_file_like_obj(S);
+    e = parse(stream, &a);
+
+    TEST_ASSERT_EQUAL_E_STATE(P_STATE_OK);
+    TEST_ASSERT_EQUAL_STRING("a", a.title);
+    TEST_ASSERT_EQUAL_STRING("b", a.author);
+    TEST_ASSERT_EQUAL_STRING("c", a.version);
+
+    TEST_ASSERT_EQUAL(2, a.sec_count);
+
+    TEST_ASSERT_EQUAL(0, a.sections[0].id);
+    TEST_ASSERT_EQUAL_STRING("aksdjfask", a.sections[0].text);
+    TEST_ASSERT_EQUAL(1, a.sections[0].opt_count);
+    TEST_ASSERT_EQUAL_STRING("opción 1", a.sections[0].options[0].text);
+
+    TEST_ASSERT_EQUAL(1, a.sections[1].id);
+    TEST_ASSERT_EQUAL_STRING("aksdjfask", a.sections[1].text);
+    TEST_ASSERT_EQUAL(0, a.sections[1].options[0].sec_id);
+    TEST_ASSERT_EQUAL_STRING("opción 2", a.sections[1].options[0].text);
+}
+
 int main() {
     UnityBegin("tests/parse_tests.c");
 
@@ -176,6 +212,8 @@ int main() {
     RUN_TEST(parse_adventure_with_incorrect_section_syntax_2);
     RUN_TEST(parse_adventure_empty_file);
     RUN_TEST(parse_error_too_many_options_in_section);
+    RUN_TEST(parse_bulgarian_text);
+    RUN_TEST(parse_accented_spanish_text);
 
     return UnityEnd();
 }

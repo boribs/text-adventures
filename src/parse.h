@@ -6,8 +6,8 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define TOKEN_STR_INITIAL_LEN 40
-#define TOKEN_STR_LEN_INCREMENT 100
+#include "utf8.h"
+
 #define MIN_SECTION_COUNT 2
 
 enum ParseState {
@@ -77,19 +77,15 @@ static struct TokenError te_un() { // unreachable
     return (struct TokenError) { .state = P_STATE_UNREACHABLE };
 }
 
-static void tok_addch(char c, struct Token *t) {
-    if (t->tstr == NULL) {
-        t->tstr = (char *)calloc(TOKEN_STR_INITIAL_LEN, sizeof(char));
-        t->tstr_max_len = TOKEN_STR_INITIAL_LEN;
-    }
-    size_t len = strlen(t->tstr);
-    if (len + 1 == t->tstr_max_len) {
-        t->tstr_max_len += TOKEN_STR_LEN_INCREMENT;
-        t->tstr = (char *)realloc(t->tstr, sizeof(char) * t->tstr_max_len);
-    }
+static void tok_addch(char *char_bits, size_t byte_count, struct Token *t) {
+    if (*char_bits == 0) return;
 
-    t->tstr[len] = c;
-    t->tstr[len + 1] = 0;
+    size_t len = 0;
+    if (t->tstr != NULL) { len = utf8size_lazy(t->tstr); }
+
+    t->tstr = realloc(t->tstr, (byte_count + 1) * sizeof(char));
+    utf8cat(t->tstr, char_bits);
+    t->tstr[utf8size_lazy(t->tstr)] = 0;
 }
 
 static void tok_clear(struct Token *t) {
@@ -101,7 +97,7 @@ static void tok_clear(struct Token *t) {
 static void tok_add_token(struct TokenList *tl, struct Token *t) {
     tl->count++;
     if (t->tstr != NULL) {
-        t->tstr = realloc(t->tstr, sizeof(char) * (strlen(t->tstr) + 1));
+        t->tstr = realloc(t->tstr, sizeof(char) * (utf8size(t->tstr)));
     }
     tl->list = realloc(tl->list, sizeof(struct Token) * tl->count);
 
