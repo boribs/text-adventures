@@ -173,17 +173,16 @@ struct TokenError parse(FILE *file, struct Adventure *a) {
                 add_token_to_list(&tokens, &t);
             } else { return te(P_STATE_INVALID_CHARACTER_CLOSING_ID_DEL, col, row); } // invalid syntax - found > outside of ID
 
-        } else if (is_valid_text_token_char(c)) {
+        } else if (is_whitespace(c)) {
+            col++;
+            if (t.ttype == TOK_TEXT) { tok_addch(c, &t); }
+            if (c == '\n') { row++; col = 1; }
+
+        } else if (c > 0) {
             if (t.ttype == TOK_EMPTY) { t.ttype = TOK_TEXT; t.col = col; t.row = row; }
             if (t.ttype == TOK_TEXT) { tok_addch(c, &t); }
             else if (t.ttype == TOK_ID) { return te(P_STATE_INVALID_CHAR_IN_ID, col, row); } // invalid char - non-numeric value inside ID
             col++;
-        }
-
-        else if (is_whitespace(c)) {
-            col++;
-            if (t.ttype == TOK_TEXT) { tok_addch(c, &t); }
-            if (c == '\n') { row++; col = 1; }
         }
     }
 
