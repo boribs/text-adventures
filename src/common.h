@@ -28,11 +28,11 @@ struct Adventure {
     struct Sec *sections;
 };
 
-static void clear_opt(struct Opt *o) {
+static void free_opt(struct Opt *o) {
     free(o->text);
 }
 
-static void clear_sec(struct Sec *s) {
+static void free_sec(struct Sec *s) {
     free(s->text);
     for (size_t i = 0; i < s->opt_count; ++i) {
         clear_opt(&s->options[i]);
@@ -40,12 +40,12 @@ static void clear_sec(struct Sec *s) {
     free(s->options);
 }
 
-static void clear_adventure(struct Adventure *a) {
+static void free_adventure(struct Adventure *a) {
     free(a->title);
     free(a->author);
     free(a->version);
     for (size_t i = 0; i < a->sec_count; ++i) {
-        clear_sec(&a->sections[i]);
+        free_sec(&a->sections[i]);
     }
 }
 

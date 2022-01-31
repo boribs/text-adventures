@@ -1,3 +1,5 @@
+// parser stuff
+
 #ifndef TEXT_ADVENTURES_PARSE
 #define TEXT_ADVENTURES_PARSE
 
@@ -6,8 +8,8 @@
 #include <string.h>
 #include <stdbool.h>
 
-#define TOKEN_STR_INITIAL_LEN 40
-#define TOKEN_STR_LEN_INCREMENT 100
+#include "utf8.h"
+
 #define MIN_SECTION_COUNT 2
 
 enum ParseState {
@@ -43,9 +45,8 @@ enum TokenType {
 };
 
 struct Token {
-    enum TokenType ttype;
-    char *tstr;
-    size_t tstr_max_len;
+    enum TokenType type;
+    char *str;
     size_t col;
     size_t row;
 };
@@ -76,49 +77,5 @@ static struct TokenError te_ok() {
 static struct TokenError te_un() { // unreachable
     return (struct TokenError) { .state = P_STATE_UNREACHABLE };
 }
-
-static void tok_addch(char c, struct Token *t) {
-    if (t->tstr == NULL) {
-        t->tstr = (char *)calloc(TOKEN_STR_INITIAL_LEN, sizeof(char));
-        t->tstr_max_len = TOKEN_STR_INITIAL_LEN;
-    }
-    size_t len = strlen(t->tstr);
-    if (len + 1 == t->tstr_max_len) {
-        t->tstr_max_len += TOKEN_STR_LEN_INCREMENT;
-        t->tstr = (char *)realloc(t->tstr, sizeof(char) * t->tstr_max_len);
-    }
-
-    t->tstr[len] = c;
-    t->tstr[len + 1] = 0;
-}
-
-static void tok_clear(struct Token *t) {
-    t->ttype = TOK_EMPTY;
-    t->tstr = NULL;
-    t->tstr_max_len = 0;
-}
-
-static void tok_add_token(struct TokenList *tl, struct Token *t) {
-    tl->count++;
-    if (t->tstr != NULL) {
-        t->tstr = realloc(t->tstr, sizeof(char) * (strlen(t->tstr) + 1));
-    }
-    tl->list = realloc(tl->list, sizeof(struct Token) * tl->count);
-
-    tl->list[tl->count - 1] = *t;
-    tok_clear(t);
-}
-
-static struct Token tok_pop_last_token(struct TokenList *tl) {
-    if (tl->count == 0) return (struct Token){.ttype=TOK_EMPTY};
-
-    (tl->count)--;
-    struct Token last = tl->list[tl->count];
-    tl->list = realloc(tl->list, sizeof(struct Token) * tl->count);
-
-    return last;
-}
-
-struct TokenError parse(FILE *file, struct Adventure *a);
 
 #endif // TEXT_ADVENTURES_PARSE

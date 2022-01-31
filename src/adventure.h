@@ -1,3 +1,5 @@
+// stuff related to display and ui
+
 #ifndef TEXT_ADVENTURES_ADVENTURE
 #define TEXT_ADVENTURES_ADVENTURE
 
