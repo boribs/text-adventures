@@ -8,15 +8,18 @@ It reads files that follow this syntax (JSON):
 title: "adventure's title",
 author: "adventure's author",
 version: "adventure's version",
-
-section: {
-    id: #section id,
-    text: "section text",
-    option: {
-        id: #option id,
-        text: "option text"
+sections: [
+    {
+        id: #section id,
+        text: "section text",
+        options: [
+            {
+                id: #option id,
+                text: "option text"
+            }
+        ]
     }
-}
+]
 }
 ```
 
