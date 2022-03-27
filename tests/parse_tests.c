@@ -47,12 +47,19 @@ static void test_json_empty_str(void) {
     TEST_ASSERT_ERROR(PE_EMPTY_FILE);
 }
 
-// JSON to Adventure tests
+static void test_jsom_empty_file_when_only_whitespace_present(void) {
+    construct_file_like_obj(" \n");
+
+    json_parse(stream);
+    TEST_ASSERT_ERROR(PE_EMPTY_FILE);
+}
+
 
 int main() {
     UnityBegin("tests/parse_tests.c");
 
     RUN_TEST(test_json_empty_str);
+    RUN_TEST(test_jsom_empty_file_when_only_whitespace_present);
 
     return UnityEnd();
 }
