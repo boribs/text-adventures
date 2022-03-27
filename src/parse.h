@@ -65,6 +65,7 @@ enum ParseStateEnum {
 
 enum ParseErrorEnum {
     PE_EMPTY_FILE,
+    PE_INVALID_CHAR,
     PE_MISSING_BRACKET,
     PE_MISSING_DOUBLE_QUOTES,
 };

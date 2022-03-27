@@ -38,7 +38,11 @@ Object json_parse(FILE *stream) {
 
         if (utf8cmp(c.chr, "{") == 0) {
             parse_state = PS_OK;
-            return create_object(stream);
+            Object out = create_object(stream);
+
+            // TODO: Check for errors
+
+            return out;
 
         } else if (!isutf8whitespace(c.chr)) {
             parse_state = PS_ERROR;
@@ -59,5 +63,19 @@ Object json_parse(FILE *stream) {
  * Sets parse_error flag on error.
  */
 Object create_object(FILE *stream) {
-    return (Object){};
+    utf8char c;
+    Object out = (Object){};
+
+    while (!feof(stream)) {
+        c = get_char(stream);
+
+        if (utf8cmp(c.chr, "}") == 0) {
+            break;
+        }
+    }
+
+    // TODO: check for empty object
+
+    parse_state = PS_OK;
+    return out;
 }
