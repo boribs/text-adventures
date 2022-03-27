@@ -287,6 +287,9 @@ utf8_weak utf8_int8_t *utf8ndup_ex(const utf8_int8_t *src, size_t n,
                                                                   size_t),
                                    utf8_int8_t *user_data);
 
+// returns 1 if the provided bytes correspond to whitespace.
+static int isutf8whitespace(utf8_int8_t *str);
+
 #undef utf8_weak
 #undef utf8_pure
 #undef utf8_nonnull
@@ -1663,6 +1666,70 @@ utf8rcodepoint(const utf8_int8_t *utf8_restrict str,
 
   return (utf8_int8_t *)s;
 }
+
+// got this list from https://stackoverflow.com/questions/2227921/simplest-way-to-get-a-complete-list-of-all-the-utf-8-whitespace-characters-in-ph
+const static utf8_int8_t *SINGLE_BYTE_UTF8_WHITESPACE[6] = {
+  "\t",
+  "\n",
+  "\x0b",
+  "\x0c",
+  "\r",
+  " "
+};
+
+const static utf8_int8_t *TWO_BYTE_UTF8_WHITESPACE[4] = {
+  "\xc2\x85",
+  "\xc2\xa0"
+};
+
+const static utf8_int8_t *THREE_BYTE_UTF8_WHITESPACE[69] = {
+  "\xe1\x9a\x80",
+  "\xe1\xa0\x8e",
+  "\xe2\x80\x80",
+  "\xe2\x80\x81",
+  "\xe2\x80\x82",
+  "\xe2\x80\x83",
+  "\xe2\x80\x84",
+  "\xe2\x80\x85",
+  "\xe2\x80\x86",
+  "\xe2\x80\x87",
+  "\xe2\x80\x88",
+  "\xe2\x80\x89",
+  "\xe2\x80\x8a",
+  "\xe2\x80\x8b",
+  "\xe2\x80\x8c",
+  "\xe2\x80\x8d",
+  "\xe2\x80\xa8",
+  "\xe2\x80\xa9",
+  "\xe2\x80\xaf",
+  "\xe2\x81\x9f",
+  "\xe2\x81\xa0",
+  "\xe3\x80\x80",
+  "\xef\xbb\xbf"
+};
+
+static int isutf8whitespace(utf8_int8_t *str) {
+  for (size_t i = 0; i < 6; ++i) {
+    if (utf8ncmp(str, SINGLE_BYTE_UTF8_WHITESPACE[i], 1) == 0) {
+      return 1;
+    }
+  }
+
+  for (size_t i = 0; i < 2; ++i) {
+    if (utf8ncmp(str, TWO_BYTE_UTF8_WHITESPACE[i], 2) == 0) {
+      return 1;
+    }
+  }
+
+  for (size_t i = 0; i < 23; ++i) {
+    if (utf8ncmp(str, THREE_BYTE_UTF8_WHITESPACE[i], 3) == 0) {
+      return 1;
+    }
+  }
+
+  return 0;
+}
+
 
 #undef utf8_restrict
 #undef utf8_constexpr14
