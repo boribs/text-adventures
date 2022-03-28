@@ -15,7 +15,7 @@ typedef struct utf8char {
 
 typedef struct String {
     char *chars;
-    size_t len;
+    size_t len; // includes null char
 } String;
 
 enum ValueEnum {
@@ -66,6 +66,7 @@ enum ParseStateEnum {
 enum ParseErrorEnum {
     PE_EMPTY_FILE,
     PE_INVALID_CHAR,
+    PE_MISSING_VALUE,
     PE_MISSING_BRACKET,
     PE_MISSING_DOUBLE_QUOTES,
 };

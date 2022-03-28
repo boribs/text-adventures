@@ -112,6 +112,19 @@ static void test_json_empty_object(void) {
     compare_objects(expected, actual);
 }
 
+static void test_object_with_just_a_key(void) {
+    construct_file_like_obj("{key:}");
+
+    Object actual = json_parse(stream);
+    TEST_ASSERT_ERROR(PE_MISSING_VALUE);
+}
+
+static void test_object_with_just_a_key2(void) {
+    construct_file_like_obj("{key}");
+
+    Object actual = json_parse(stream);
+    TEST_ASSERT_ERROR(PE_MISSING_VALUE);
+}
 // JSON to Adventure conversion tests
 // ...
 
@@ -121,6 +134,8 @@ int main() {
     RUN_TEST(test_json_empty_str);
     RUN_TEST(test_jsom_empty_file_when_only_whitespace_present);
     RUN_TEST(test_json_empty_object);
+    RUN_TEST(test_object_with_just_a_key);
+    RUN_TEST(test_object_with_just_a_key2);
 
     return UnityEnd();
 }
