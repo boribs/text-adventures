@@ -43,8 +43,8 @@ static void construct_file_like_obj(char *s) {
 static void compare_lists(List *expected, List *actual);
 
 static void compare_strings(String expected, String actual) {
-    TEST_ASSERT_EQUAL(0, utf8cmp(expected.chars->chr, actual.chars->chr));
-    TEST_ASSERT_EQUAL(expected.chars->len, actual.chars->len);
+    TEST_ASSERT_EQUAL(0, utf8cmp(expected.chars, actual.chars));
+    TEST_ASSERT_EQUAL(expected.len, actual.len);
     TEST_ASSERT_EQUAL(expected.len, actual.len);
 }
 

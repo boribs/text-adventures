@@ -10,11 +10,11 @@
 
 typedef struct utf8char {
     char *chr;
-    size_t len;
+    size_t len; // includes null char
 } utf8char;
 
 typedef struct String {
-    utf8char *chars;
+    char *chars;
     size_t len;
 } String;
 
