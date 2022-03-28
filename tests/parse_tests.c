@@ -125,6 +125,13 @@ static void test_object_with_just_a_key2(void) {
     Object actual = json_parse(stream);
     TEST_ASSERT_ERROR(PE_MISSING_VALUE);
 }
+
+static void test_invalid_whitespace_in_non_string_key(void) {
+    construct_file_like_obj("{k ey}");
+
+    Object actual = json_parse(stream);
+    TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+}
 // JSON to Adventure conversion tests
 // ...
 

@@ -85,6 +85,7 @@ Object create_object(FILE *stream) {
     String s = (String){.len = 1};
     Relation r = (Relation){};
     bool expecting_value = false,
+         expecting_double_colon = false,
          is_string = false;
 
     while (!feof(stream)) {
@@ -96,6 +97,8 @@ Object create_object(FILE *stream) {
         } else if (isutf8whitespace(c.chr)) {
             if (is_string) {
                 charcat(&s, &c);
+            } else if (!expecting_value) {
+                expecting_double_colon = true;
             }
         } else if (utf8cmp(c.chr, ":") == 0) {
             if (is_string) {
@@ -110,6 +113,12 @@ Object create_object(FILE *stream) {
         } else if (utf8cmp(c.chr, "[") == 0) {
             // check if expecting value, create list
         } else if (*c.chr > 0) {
+            if (expecting_double_colon) {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_CHAR;
+                return out;
+            }
+
             charcat(&s, &c);
         } else {
             // got to the end without closing the object
