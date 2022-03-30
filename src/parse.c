@@ -24,6 +24,12 @@ utf8char get_char(FILE *stream) {
         exit(1);
     }
 
+    p_row++;
+    if (utf8cmp(out, "\n") == 0) {
+        p_row++;
+        p_col = 0;
+    }
+
     return (utf8char){ .chr = out, .len = i };
 }
 
@@ -59,6 +65,8 @@ static void new_string(String *s) {
  * Sets parse_error flag on error.
  */
 Object json_parse(FILE *stream) {
+    p_col = 0;
+    p_row = 0;
     utf8char c;
 
     while (!feof(stream)) {

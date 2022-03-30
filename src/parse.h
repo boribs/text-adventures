@@ -75,7 +75,7 @@ enum ParseErrorEnum {
 // parse flags, set by json_parse
 enum ParseStateEnum parse_state;
 enum ParseErrorEnum parse_error;
-size_t err_col, err_row;
+size_t p_col, p_row;
 
 // --------------------------------------------------------
 
