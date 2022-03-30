@@ -6,7 +6,14 @@
 #include "utf8.h"
 #include "parse.h"
 
-// TODO: keep track of column and row
+enum TokenType {
+    TOK_NON,
+    TOK_STR,
+    TOK_NUM,
+    TOK_DC,
+    // TOK_OBJ,
+    // TOK_LIST,
+};
 
 utf8char get_char(FILE *stream) {
     utf8_int8_t pool[10] = {0};
@@ -143,18 +150,18 @@ Relation create_relation(FILE *stream) {
     Relation r = (Relation){.value_type = -1};
 
     String token = (String){};
-    int token_type = VALUE_STR;
     new_string(&token);
+    enum TokenType token_type = TOK_STR;
+    enum TokenType last_token = TOK_NON;
 
-    bool escaped = false,
-         double_colon = false;
+    bool escaped = false;
 
     while (!feof(stream)) {
         utf8char uc = get_char(stream);
         char *c = uc.chr;
 
         if (utf8cmp(c, "\\") == 0) {
-            if (token_type != VALUE_STR) {
+            if (token_type != TOK_STR) {
                 parse_state = PS_ERROR;
                 parse_error = PE_INVALID_CHAR;
                 return r;
@@ -163,31 +170,33 @@ Relation create_relation(FILE *stream) {
             if (escaped) {
                 charcat(&token, &uc);
                 escaped = false;
+            } else {
+                escaped = true;
             }
 
-            escaped = true;
-
         } else if (utf8cmp(c, "\"") == 0) {
-            if (token_type == VALUE_STR) {
+            if (token_type == TOK_STR) {
                 if (escaped) {
                     charcat(&token, &uc);
                     escaped = false;
                 } else {
-                    token_type = -1;
+                    token_type = TOK_NON;
+                    last_token = TOK_STR;
                 }
-            } else if (!double_colon) {
+            } else if (last_token != TOK_DC) {
                 parse_state = PS_ERROR;
                 parse_error = PE_INVALID_CHAR;
                 return r;
             } else {
-                token_type = VALUE_STR;
+                last_token = token_type;
+                token_type = TOK_STR;
             }
 
         } else if (utf8cmp(c, ":") == 0) {
-            if (token_type == VALUE_STR) {
+            if (token_type == TOK_STR) {
                 charcat(&token, &uc);
-            } else if (token_type == -1) {
-                if (double_colon) {
+            } else if (token_type == TOK_NON) {
+                if (last_token != TOK_STR || r.key.chars != NULL) {
                     parse_state = PS_ERROR;
                     parse_error = PE_INVALID_CHAR;
                     return r;
@@ -195,7 +204,7 @@ Relation create_relation(FILE *stream) {
                     r.key = token;
                     token = (String){};
                     new_string(&token);
-                    double_colon = true;
+                    last_token = TOK_DC;
                 }
             }
 
@@ -210,7 +219,7 @@ Relation create_relation(FILE *stream) {
             break;
 
         } else {
-            if (token_type != VALUE_STR) {
+            if (token_type != TOK_STR) {
                 parse_state = PS_ERROR;
                 parse_error = PE_INVALID_CHAR;
                 return r;
