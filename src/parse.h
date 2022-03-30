@@ -59,8 +59,8 @@ typedef struct ObjectList {
 
 enum ParseStateEnum {
     PS_OK,
+    PS_ERROR,
     PS_UNREACHABLE,
-    PS_ERROR
 };
 
 enum ParseErrorEnum {

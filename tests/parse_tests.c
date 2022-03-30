@@ -183,6 +183,22 @@ static void test_object_must_have_name_value_pair2(void) {
     TEST_ASSERT_ERROR(PE_MISSING_VALUE);
 }
 
+static void test_invalid_double_string(void) {
+    construct_file_like_obj("{\"invalid\"\"key\":\"valid value\"}");
+
+    json_parse(stream);
+    TEST_ASSERT_STATE(PS_ERROR);
+    TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+}
+
+static void test_invalid_double_colon(void) {
+    construct_file_like_obj("{\"valid\\\"\"key\"::\"valid value\"}");
+
+    json_parse(stream);
+    TEST_ASSERT_STATE(PS_ERROR);
+    TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+}
+
 // JSON to Adventure conversion tests
 // ...
 
@@ -198,6 +214,8 @@ int main() {
     RUN_TEST(test_escaped_unicode_chars);
     RUN_TEST(test_object_must_have_name_value_pair);
     RUN_TEST(test_object_must_have_name_value_pair2);
+    RUN_TEST(test_invalid_double_string);
+    RUN_TEST(test_invalid_double_colon);
 
     return UnityEnd();
 }
