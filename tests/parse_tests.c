@@ -222,6 +222,15 @@ static void test_invalid_double_colon2(void) {
     TEST_ASSERT_POSITION(0, 28);
 }
 
+static void test_incomplete_object(void) {
+    construct_file_like_obj("{\"key\":\"value\"");
+
+    json_parse(stream);
+    TEST_ASSERT_STATE(PS_ERROR);
+    TEST_ASSERT_ERROR(PE_MISSING_BRACKET);
+    TEST_ASSERT_POSITION(0, 15);
+}
+
 // JSON to Adventure conversion tests
 // ...
 
@@ -241,6 +250,7 @@ int main() {
     RUN_TEST(test_invalid_double_quote);
     RUN_TEST(test_invalid_double_colon);
     RUN_TEST(test_invalid_double_colon2);
+    RUN_TEST(test_incomplete_object);
 
     return UnityEnd();
 }

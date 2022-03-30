@@ -140,7 +140,6 @@ Object create_object(FILE *stream) {
     }
 
     // TODO: check for empty object?
-    // TODO: check for incomplete object
 
     parse_state = PS_OK;
     return out;
@@ -217,6 +216,11 @@ Relation create_relation(FILE *stream) {
         } else if (utf8cmp(c, "}") == 0) {
             fseek(stream, -1, SEEK_CUR);
             break;
+
+        } else if (uc.len == 1 && *c < 0) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_BRACKET;
+            return r;
 
         } else {
             if (token_type != TOK_STR) {
