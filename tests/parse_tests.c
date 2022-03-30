@@ -143,8 +143,32 @@ static void test_allow_string_with_whitespace_as_key(void) {
     compare_objects(expected, actual);
 }
 
-static void test_object_with_just_a_key2(void) {
-    construct_file_like_obj("{key}");
+static void test_escaped_double_quote(void) {
+    construct_file_like_obj("{\"this key contains an escaped \\\"\":\"val\"}");
+
+    Object actual = json_parse(stream);
+
+    TEST_ASSERT_NO_ERROR();
+    TEST_ASSERT_EQUAL_STRING(
+        "this key contains an escaped \"",
+        actual.relations[0].key.chars
+    );
+}
+
+static void test_escaped_unicode_chars(void) {
+    construct_file_like_obj("{\"this key contains escaped unicode: \uc3b6\":\"val\"}");
+
+    Object actual = json_parse(stream);
+
+    TEST_ASSERT_NO_ERROR();
+    TEST_ASSERT_EQUAL_STRING(
+        "this key contains escaped unicode: \uc3b6",
+        actual.relations[0].key.chars
+    );
+}
+
+static void test_object_must_have_name_value_pair(void) {
+    construct_file_like_obj("{\"key\":}");
 
     Object actual = json_parse(stream);
     TEST_ASSERT_ERROR(PE_MISSING_VALUE);
@@ -167,6 +191,8 @@ int main() {
     RUN_TEST(test_json_empty_object);
     RUN_TEST(test_key_must_be_string);
     RUN_TEST(test_allow_string_with_whitespace_as_key);
+    RUN_TEST(test_escaped_double_quote);
+    RUN_TEST(test_escaped_unicode_chars);
     // RUN_TEST(test_object_must_have_name_value_pair);
     // RUN_TEST(test_object_must_have_name_value_pair2);
 
