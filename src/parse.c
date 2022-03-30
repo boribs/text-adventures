@@ -140,7 +140,7 @@ Object create_object(FILE *stream) {
 }
 
 Relation create_relation(FILE *stream) {
-    Relation r = (Relation){};
+    Relation r = (Relation){.value_type = -1};
 
     String token = (String){};
     int token_type = VALUE_STR;
@@ -207,8 +207,6 @@ Relation create_relation(FILE *stream) {
 
         } else if (utf8cmp(c, "}") == 0) {
             fseek(stream, -1, SEEK_CUR);
-            r.value_type = VALUE_STR;
-            r.value.str = token;
             break;
 
         } else {
@@ -222,6 +220,18 @@ Relation create_relation(FILE *stream) {
         }
     }
 
-    parse_state = PS_OK;
+    if (*token.chars != 0 && r.key.chars != NULL) {
+        r.value_type = VALUE_STR;
+        r.value.str = token;
+    }
+
+    if (r.value_type == -1) {
+        parse_state = PS_ERROR;
+        parse_error = PE_MISSING_VALUE;
+
+    } else {
+        parse_state = PS_OK;
+    }
+
     return r;
 }

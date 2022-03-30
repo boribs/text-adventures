@@ -170,16 +170,19 @@ static void test_escaped_unicode_chars(void) {
 static void test_object_must_have_name_value_pair(void) {
     construct_file_like_obj("{\"key\":}");
 
-    Object actual = json_parse(stream);
+    json_parse(stream);
+    TEST_ASSERT_STATE(PS_ERROR);
     TEST_ASSERT_ERROR(PE_MISSING_VALUE);
 }
 
-static void test_invalid_whitespace_in_non_string_key(void) {
-    construct_file_like_obj("{k ey}");
+static void test_object_must_have_name_value_pair2(void) {
+    construct_file_like_obj("{\"key\"}");
 
-    Object actual = json_parse(stream);
-    TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+    json_parse(stream);
+    TEST_ASSERT_STATE(PS_ERROR);
+    TEST_ASSERT_ERROR(PE_MISSING_VALUE);
 }
+
 // JSON to Adventure conversion tests
 // ...
 
@@ -193,8 +196,8 @@ int main() {
     RUN_TEST(test_allow_string_with_whitespace_as_key);
     RUN_TEST(test_escaped_double_quote);
     RUN_TEST(test_escaped_unicode_chars);
-    // RUN_TEST(test_object_must_have_name_value_pair);
-    // RUN_TEST(test_object_must_have_name_value_pair2);
+    RUN_TEST(test_object_must_have_name_value_pair);
+    RUN_TEST(test_object_must_have_name_value_pair2);
 
     return UnityEnd();
 }
