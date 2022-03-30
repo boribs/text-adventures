@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <assert.h>
 
 #include "utf8.h"
 #include "parse.h"
@@ -42,6 +43,17 @@ static void charcat(String *dst, utf8char *s) {
     utf8cat(dst->chars, s->chr);
 }
 
+static void new_string(String *s) {
+    s->len = 1;
+    char *p = calloc(1, sizeof(char));
+
+    if (p == NULL) {
+        printf("Fatal error: can't calloc memory.");
+        exit(1);
+    }
+    s->chars = p;
+}
+
 /*
  * Takes a stream of characters and interprets it  as JSON.
  * Sets parse_error flag on error.
@@ -81,65 +93,127 @@ Object json_parse(FILE *stream) {
  */
 Object create_object(FILE *stream) {
     utf8char c;
-    Object out = (Object){};
-    String s = (String){.len = 1};
-    Relation r = (Relation){};
-    bool expecting_value = false,
-         expecting_double_colon = false,
-         is_string = false;
+    Object out = (Object){
+        .relation_count = 0,
+        .relations = malloc(sizeof(Relation *))
+    };
 
     while (!feof(stream)) {
         c = get_char(stream);
 
         if (utf8cmp(c.chr, "\"") == 0) {
-            // begin / end string
-            // remember it can be escaped!
-        } else if (isutf8whitespace(c.chr)) {
-            if (is_string) {
-                charcat(&s, &c);
-            } else if (!expecting_value) {
-                expecting_double_colon = true;
-            }
-        } else if (utf8cmp(c.chr, ":") == 0) {
-            if (is_string) {
-                charcat(&s, &c);
-            } else {
-                r.key = s;
-                expecting_value = true;
-                s = (String){};
-            }
-        } else if (utf8cmp(c.chr, "{") == 0) {
-            // check if expecting value, create object / add to string
-        } else if (utf8cmp(c.chr, "[") == 0) {
-            // check if expecting value, create list
-        } else if (*c.chr > 0) {
-            if (expecting_double_colon) {
-                parse_state = PS_ERROR;
-                parse_error = PE_INVALID_CHAR;
+            Relation rel = create_relation(stream);
+
+            if (parse_state != PS_OK) {
                 return out;
             }
 
-            charcat(&s, &c);
-        } else {
-            // got to the end without closing the object
-            break;
-        }
+            out.relation_count++;
+            Relation *r = realloc(out.relations, out.relation_count * sizeof(Relation *));
+            assert(r != NULL && "Error allocating memory for relation.");
+            r[out.relation_count - 1] = rel;
+            out.relations = r;
 
-        if (utf8cmp(c.chr, "}") == 0) {
+        } else if (utf8cmp(c.chr, "}") == 0) {
             break;
+
+        } else if (!isutf8whitespace(c.chr)) {
+            parse_state = PS_ERROR;
+            parse_error = PE_INVALID_CHAR;
+            return out;
         }
     }
 
     // TODO: check for empty object?
     // TODO: check for incomplete object
 
-    if (expecting_value) {
-        parse_state = PS_ERROR;
-        parse_error = PE_MISSING_VALUE;
+    parse_state = PS_OK;
+    return out;
+}
 
-        return out;
+Relation create_relation(FILE *stream) {
+    Relation r = (Relation){};
+
+    String token = (String){};
+    int token_type = VALUE_STR;
+    new_string(&token);
+
+    bool escaped = false,
+         double_colon = false;
+
+    while (!feof(stream)) {
+        utf8char uc = get_char(stream);
+        char *c = uc.chr;
+
+        if (utf8cmp(c, "\\") == 0) {
+            if (token_type != VALUE_STR) {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_CHAR;
+                return r;
+            }
+
+            if (escaped) {
+                charcat(&token, &uc);
+                escaped = false;
+            }
+
+            escaped = true;
+
+        } else if (utf8cmp(c, "\"") == 0) {
+            if (token_type == VALUE_STR) {
+                if (escaped) {
+                    charcat(&token, &uc);
+                    escaped = false;
+                } else {
+                    token_type = -1;
+                }
+            } else if (!double_colon) {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_CHAR;
+                return r;
+            } else {
+                token_type = VALUE_STR;
+            }
+
+        } else if (utf8cmp(c, ":") == 0) {
+            if (token_type == VALUE_STR) {
+                charcat(&token, &uc);
+            } else if (token_type == -1) {
+                if (double_colon) {
+                    parse_state = PS_ERROR;
+                    parse_error = PE_INVALID_CHAR;
+                    return r;
+                } else {
+                    r.key = token;
+                    token = (String){};
+                    new_string(&token);
+                    double_colon = true;
+                }
+            }
+
+        } else if (utf8cmp(c, "{") == 0) {
+            assert(0 && "nested objects not implemented.");
+
+        } else if (utf8cmp(c, "[") == 0) {
+            assert(0 && "object lists not implemented.");
+
+        } else if (utf8cmp(c, "}") == 0) {
+            fseek(stream, -1, SEEK_CUR);
+            r.value_type = VALUE_STR;
+            r.value.str = token;
+            break;
+
+        } else {
+            if (token_type != VALUE_STR) {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_CHAR;
+                return r;
+            } else {
+                charcat(&token, &uc);
+            }
+        }
     }
 
     parse_state = PS_OK;
-    return out;
+    return r;
 }

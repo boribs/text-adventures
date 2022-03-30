@@ -112,11 +112,35 @@ static void test_json_empty_object(void) {
     compare_objects(expected, actual);
 }
 
-static void test_object_with_just_a_key(void) {
-    construct_file_like_obj("{key:}");
+static void test_key_must_be_string(void) {
+    construct_file_like_obj("{key:\"value\"}");
 
     Object actual = json_parse(stream);
-    TEST_ASSERT_ERROR(PE_MISSING_VALUE);
+    TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+}
+
+static void test_allow_string_with_whitespace_as_key(void) {
+    construct_file_like_obj("{\"key with whitespace\":\"val\"}");
+
+    Object actual = json_parse(stream);
+    Object expected = (Object){
+        .relation_count = 1,
+        .relations = (Relation *){
+            &(Relation){
+                .key = (String){
+                    .chars = "key with whitespace",
+                    .len = 20
+                },
+                .value_type = VALUE_STR,
+                .value = (Value){.str = (String){
+                    .chars = "val",
+                    .len = 4
+                }}
+            }
+        }
+    };
+    TEST_ASSERT_NO_ERROR();
+    compare_objects(expected, actual);
 }
 
 static void test_object_with_just_a_key2(void) {
@@ -141,8 +165,10 @@ int main() {
     RUN_TEST(test_json_empty_str);
     RUN_TEST(test_jsom_empty_file_when_only_whitespace_present);
     RUN_TEST(test_json_empty_object);
-    RUN_TEST(test_object_with_just_a_key);
-    RUN_TEST(test_object_with_just_a_key2);
+    RUN_TEST(test_key_must_be_string);
+    RUN_TEST(test_allow_string_with_whitespace_as_key);
+    // RUN_TEST(test_object_must_have_name_value_pair);
+    // RUN_TEST(test_object_must_have_name_value_pair2);
 
     return UnityEnd();
 }
