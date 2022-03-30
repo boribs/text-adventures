@@ -24,7 +24,7 @@ utf8char get_char(FILE *stream) {
         exit(1);
     }
 
-    p_row++;
+    p_col++;
     if (utf8cmp(out, "\n") == 0) {
         p_row++;
         p_col = 0;

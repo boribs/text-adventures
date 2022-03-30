@@ -26,9 +26,11 @@ void tearDown() {
 }
 
 #define S &s[0]
-#define TEST_ASSERT_STATE(ps)    TEST_ASSERT_EQUAL(ps, parse_state)
-#define TEST_ASSERT_ERROR(pe)    TEST_ASSERT_EQUAL(pe, parse_error)
-#define TEST_ASSERT_NO_ERROR()    TEST_ASSERT_STATE(PS_OK)
+#define TEST_ASSERT_STATE(ps)         TEST_ASSERT_EQUAL(ps, parse_state)
+#define TEST_ASSERT_ERROR(pe)         TEST_ASSERT_EQUAL(pe, parse_error)
+#define TEST_ASSERT_NO_ERROR()        TEST_ASSERT_STATE(PS_OK)
+#define TEST_ASSERT_POSITION(r, c)    TEST_ASSERT_EQUAL(r, p_row); \
+                                      TEST_ASSERT_EQUAL(c, p_col)
 
 static void construct_file_like_obj(char *s) {
     size_t ssize = strlen(s) + 1;
@@ -117,6 +119,7 @@ static void test_key_must_be_string(void) {
 
     Object actual = json_parse(stream);
     TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+    TEST_ASSERT_POSITION(0, 2);
 }
 
 static void test_allow_string_with_whitespace_as_key(void) {
@@ -189,14 +192,16 @@ static void test_invalid_double_string(void) {
     json_parse(stream);
     TEST_ASSERT_STATE(PS_ERROR);
     TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+    TEST_ASSERT_POSITION(0, 11);
 }
 
 static void test_invalid_double_colon(void) {
-    construct_file_like_obj("{\"valid\\\"\"key\"::\"valid value\"}");
+    construct_file_like_obj("{\"valid\\\"key\"::\"valid value\"}");
 
     json_parse(stream);
     TEST_ASSERT_STATE(PS_ERROR);
     TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+    TEST_ASSERT_POSITION(0, 15);
 }
 
 // JSON to Adventure conversion tests
