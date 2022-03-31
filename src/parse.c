@@ -40,6 +40,16 @@ utf8char get_char(FILE *stream) {
     return (utf8char){ .chr = out, .len = i };
 }
 
+void return_char(FILE *stream) {
+    fseek(stream, -1, SEEK_CUR);
+
+    if (p_col == 0) {
+        p_row--;
+    } else {
+        p_col--;
+    }
+}
+
 /*
  * Similar to strcat, but with String and utf8char
  * This also reallocates memory
@@ -65,6 +75,45 @@ static void new_string(String *s) {
         exit(1);
     }
     s->chars = p;
+}
+
+String create_string(FILE *stream) {
+    // first char must be "
+    String out = (String){};
+    new_string(&out);
+    bool escape = false;
+
+    while (!feof(stream)) {
+        utf8char c = get_char(stream);
+
+        if (utf8cmp(c.chr, "\"") == 0) {
+            if (escape) {
+                charcat(&out, &c);
+                escape = false;
+            } else {
+                break;
+            }
+
+        } else if (utf8cmp(c.chr, "\\") == 0) {
+            if (escape) {
+                charcat(&out, &c);
+                escape = false;
+            } else {
+                escape = true;
+            }
+
+        } else if (c.len == 0 && *c.chr < 0) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_DOUBLE_QUOTES;
+            return out;
+
+        } else {
+            charcat(&out, &c);
+        }
+    }
+
+    parse_state = PS_OK;
+    return out;
 }
 
 /*
@@ -104,7 +153,6 @@ Object json_parse(FILE *stream) {
  * Object parsing ends until matching } is found.
  *
  * Sets parse_error flag on error.
- * TODO: Check for mismatched brackets
  */
 Object create_object(FILE *stream) {
     utf8char c;
@@ -117,8 +165,9 @@ Object create_object(FILE *stream) {
         c = get_char(stream);
 
         if (utf8cmp(c.chr, "\"") == 0) {
-            Relation rel = create_relation(stream);
+            return_char(stream);
 
+            Relation rel = create_relation(stream);
             if (parse_state != PS_OK) {
                 return out;
             }
@@ -148,9 +197,6 @@ Object create_object(FILE *stream) {
 Relation create_relation(FILE *stream) {
     Relation r = (Relation){.value_type = -1};
 
-    String token = (String){};
-    new_string(&token);
-    enum TokenType token_type = TOK_STR;
     enum TokenType last_token = TOK_NON;
 
     bool escaped = false;
@@ -159,53 +205,35 @@ Relation create_relation(FILE *stream) {
         utf8char uc = get_char(stream);
         char *c = uc.chr;
 
-        if (utf8cmp(c, "\\") == 0) {
-            if (token_type != TOK_STR) {
+        if (utf8cmp(c, "\"") == 0) {
+            if (last_token != TOK_NON && last_token != TOK_DC) {
                 parse_state = PS_ERROR;
                 parse_error = PE_INVALID_CHAR;
                 return r;
             }
 
-            if (escaped) {
-                charcat(&token, &uc);
-                escaped = false;
-            } else {
-                escaped = true;
+            String str = create_string(stream);
+            if (parse_state != PS_OK) {
+                return r;
             }
 
-        } else if (utf8cmp(c, "\"") == 0) {
-            if (token_type == TOK_STR) {
-                if (escaped) {
-                    charcat(&token, &uc);
-                    escaped = false;
-                } else {
-                    token_type = TOK_NON;
-                    last_token = TOK_STR;
-                }
-            } else if (last_token != TOK_DC) {
-                parse_state = PS_ERROR;
-                parse_error = PE_INVALID_CHAR;
-                return r;
-            } else {
-                last_token = token_type;
-                token_type = TOK_STR;
+            if (last_token == TOK_NON) {
+                r.key = str;
+            } else if (last_token == TOK_DC) {
+                r.value_type = VALUE_STR;
+                r.value.str = str;
             }
+
+            last_token = TOK_STR;
 
         } else if (utf8cmp(c, ":") == 0) {
-            if (token_type == TOK_STR) {
-                charcat(&token, &uc);
-            } else if (token_type == TOK_NON) {
-                if (last_token != TOK_STR || r.key.chars != NULL) {
-                    parse_state = PS_ERROR;
-                    parse_error = PE_INVALID_CHAR;
-                    return r;
-                } else {
-                    r.key = token;
-                    token = (String){};
-                    new_string(&token);
-                    last_token = TOK_DC;
-                }
+            if (last_token == TOK_DC || r.value_type != -1) {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_CHAR;
+                return r;
             }
+
+            last_token = TOK_DC;
 
         } else if (utf8cmp(c, "{") == 0) {
             assert(0 && "nested objects not implemented.");
@@ -214,7 +242,7 @@ Relation create_relation(FILE *stream) {
             assert(0 && "object lists not implemented.");
 
         } else if (utf8cmp(c, "}") == 0) {
-            fseek(stream, -1, SEEK_CUR);
+            return_char(stream);
             break;
 
         } else if (uc.len == 1 && *c < 0) {
@@ -223,19 +251,10 @@ Relation create_relation(FILE *stream) {
             return r;
 
         } else {
-            if (token_type != TOK_STR) {
-                parse_state = PS_ERROR;
-                parse_error = PE_INVALID_CHAR;
-                return r;
-            } else {
-                charcat(&token, &uc);
-            }
+            parse_state = PS_ERROR;
+            parse_error = PE_INVALID_CHAR;
+            return r;
         }
-    }
-
-    if (*token.chars != 0 && r.key.chars != NULL) {
-        r.value_type = VALUE_STR;
-        r.value.str = token;
     }
 
     if (r.value_type == -1) {
