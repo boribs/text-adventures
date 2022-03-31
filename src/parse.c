@@ -78,10 +78,10 @@ static void new_string(String *s) {
 }
 
 String create_string(FILE *stream) {
-    // first char must be "
+    // first char after "
     String out = (String){};
     new_string(&out);
-    bool escape = false;
+    bool escape = false, complete = false;
 
     while (!feof(stream)) {
         utf8char c = get_char(stream);
@@ -91,6 +91,7 @@ String create_string(FILE *stream) {
                 charcat(&out, &c);
                 escape = false;
             } else {
+                complete = true;
                 break;
             }
 
@@ -112,7 +113,13 @@ String create_string(FILE *stream) {
         }
     }
 
-    parse_state = PS_OK;
+    if (complete) {
+        parse_state = PS_OK;
+    } else {
+        parse_state = PS_ERROR;
+        parse_error = PE_MISSING_DOUBLE_QUOTES;
+    }
+
     return out;
 }
 
