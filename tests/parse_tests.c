@@ -89,6 +89,17 @@ static void compare_lists(List *expected, List *actual) {
     TEST_FAIL_MESSAGE("Not implemented.");
 }
 
+static void test_create_single_string(void) {
+    construct_file_like_obj("this is a single string\"");
+
+    String actual = create_string(stream);
+    String expected = (String){
+        .chars = "this is a single string",
+        .len = 24
+    };
+
+    compare_strings(expected, actual);
+}
 
 static void test_json_empty_str(void) {
     construct_file_like_obj("");
