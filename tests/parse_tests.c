@@ -89,18 +89,6 @@ static void compare_lists(List *expected, List *actual) {
     TEST_FAIL_MESSAGE("Not implemented.");
 }
 
-static void test_create_single_string(void) {
-    construct_file_like_obj("this is a single string\"");
-
-    String actual = create_string(stream);
-    String expected = (String){
-        .chars = "this is a single string",
-        .len = 24
-    };
-
-    compare_strings(expected, actual);
-}
-
 static void test_json_empty_str(void) {
     construct_file_like_obj("");
 
@@ -123,6 +111,13 @@ static void test_json_empty_object(void) {
 
     TEST_ASSERT_NO_ERROR();
     compare_objects(expected, actual);
+}
+
+static void test_json_empty_mismatched_brackets(void) {
+    construct_file_like_obj("}");
+
+    json_parse(stream);
+    TEST_ASSERT_ERROR(PE_INVALID_CHAR);
 }
 
 static void test_key_must_be_string(void) {
@@ -312,16 +307,146 @@ static void teset_object_with_two_relations(void) {
     compare_objects(expected, actual);
 }
 
+static void test_relation_with_numeric_value(void) {
+    construct_file_like_obj("{\"num\" : 123}");
+
+    Object actual = json_parse(stream);
+    Object expected = (Object){
+        .relation_count = 1,
+        .relations = (Relation*){
+            &(Relation){
+                .key = (String){
+                    .chars = "num",
+                    .len = 4
+                },
+                .value_type = VALUE_NUM,
+                .value = (Value){ .num = 123 }
+            }
+        }
+    };
+
+    TEST_ASSERT_NO_ERROR();
+    compare_objects(expected, actual);
+}
+
+static void test_invalid_relation_with_negative_signed_number(void) {
+    construct_file_like_obj("{\"num\" : -1}");
+
+    json_parse(stream);
+
+    TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+    TEST_ASSERT_POSITION(0, 10);
+}
+
+static void test_invalid_relation_with_positive_signed_number(void) {
+    construct_file_like_obj("{\"num\" : +1}");
+
+    json_parse(stream);
+
+    TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+    TEST_ASSERT_POSITION(0, 10);
+}
+
+static void test_invalid_relation_with_exponent(void) {
+    construct_file_like_obj("{\"num\" : 10e-2}");
+
+    json_parse(stream);
+
+    TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+    TEST_ASSERT_POSITION(0, 12);
+}
+
+static void test_invalid_number_with_whitespace(void) {
+    construct_file_like_obj("{\"num\" : 54 2}");
+
+    json_parse(stream);
+
+    TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+    TEST_ASSERT_POSITION(0, 13);
+}
+
+static void test_number_surpases_limit(void) {
+    construct_file_like_obj("{\"num\" : 542122345}");
+
+    json_parse(stream);
+
+    TEST_ASSERT_ERROR(PE_NUMBER_TOO_BIG);
+    TEST_ASSERT_POSITION(0, 14);
+}
+
+static void test_multiple_numbered_relations(void) {
+    construct_file_like_obj("{\"num1\":1,\"num2\":2}");
+
+    Object actual = json_parse(stream);
+    Relation *rels = malloc(2 * sizeof(Relation));
+    rels[0] = (Relation){
+        .key = (String){
+            .chars = "num1",
+            .len = 5
+        },
+        .value_type = VALUE_NUM,
+        .value = (Value){ .num = 1 }
+    };
+    rels[1] = (Relation){
+        .key = (String){
+            .chars = "num2",
+            .len = 5
+        },
+        .value_type = VALUE_NUM,
+        .value = (Value){ .num = 2 }
+    };
+    Object expected = (Object){
+        .relation_count = 2,
+        .relations = rels
+    };
+
+    TEST_ASSERT_NO_ERROR();
+    compare_objects(expected, actual);
+}
+
+static void test_string_and_numbered_relations(void) {
+    construct_file_like_obj("{\"num1\":1,\"key2\":\"second key\"}");
+
+    Object actual = json_parse(stream);
+    Relation *rels = malloc(2 * sizeof(Relation));
+    rels[0] = (Relation){
+        .key = (String){
+            .chars = "num1",
+            .len = 5
+        },
+        .value_type = VALUE_NUM,
+        .value = (Value){ .num = 1 }
+    };
+    rels[1] = (Relation){
+        .key = (String){
+            .chars = "key2",
+            .len = 5
+        },
+        .value_type = VALUE_STR,
+        .value = (Value){ .str = (String){
+            .chars = "second key",
+            .len = 11
+        }}
+    };
+    Object expected = (Object){
+        .relation_count = 2,
+        .relations = rels
+    };
+
+    TEST_ASSERT_NO_ERROR();
+    compare_objects(expected, actual);
+}
+
 // JSON to Adventure conversion tests
 // ...
 
 int main() {
     UnityBegin("tests/parse_tests.c");
 
-    RUN_TEST(test_create_single_string);
     RUN_TEST(test_json_empty_str);
     RUN_TEST(test_jsom_empty_file_when_only_whitespace_present);
     RUN_TEST(test_json_empty_object);
+    RUN_TEST(test_json_empty_mismatched_brackets);
     RUN_TEST(test_key_must_be_string);
     RUN_TEST(test_allow_string_with_whitespace_as_key);
     RUN_TEST(test_escaped_double_quote);
@@ -336,6 +461,14 @@ int main() {
     RUN_TEST(test_incomplete_object);
     RUN_TEST(test_relation_with_trailing_comma);
     RUN_TEST(teset_object_with_two_relations);
+    RUN_TEST(test_relation_with_numeric_value);
+    RUN_TEST(test_invalid_relation_with_negative_signed_number);
+    RUN_TEST(test_invalid_relation_with_positive_signed_number);
+    RUN_TEST(test_invalid_relation_with_exponent);
+    RUN_TEST(test_invalid_number_with_whitespace);
+    RUN_TEST(test_number_surpases_limit);
+    RUN_TEST(test_multiple_numbered_relations);
+    RUN_TEST(test_string_and_numbered_relations);
 
     return UnityEnd();
 }

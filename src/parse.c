@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <assert.h>
+#include <ctype.h>
 
 #include "utf8.h"
 #include "parse.h"
@@ -78,8 +79,11 @@ static void new_string(String *s) {
     s->chars = p;
 }
 
-String create_string(FILE *stream) {
-    // first char after "
+/*
+ * Parses a series of characters until a non-escaped " is found.
+ * This assumes the first " is not part of the character set to parse.
+ */
+static String create_string(FILE *stream) {
     String out = (String){};
     new_string(&out);
     bool escape = false, complete = false;
@@ -122,6 +126,40 @@ String create_string(FILE *stream) {
     }
 
     return out;
+}
+
+static size_t create_number(FILE *stream) {
+    size_t num = 0;
+    utf8char c;
+
+    while (!feof(stream)) {
+        if (num > MAX_NUMERIC_VALUE) {
+            parse_state = PS_ERROR;
+            parse_error = PE_NUMBER_TOO_BIG;
+            break;
+        }
+
+        c = get_char(stream);
+
+        if (c.len == 1 && isdigit(*c.chr)) {
+            num = num * 10 + ((*c.chr) - '0');
+
+        } else if (
+            isutf8whitespace(c.chr)  ||
+            utf8cmp(c.chr, "}") == 0 ||
+            utf8cmp(c.chr, ",") == 0
+        ) {
+            return_char(stream);
+            break;
+
+        } else {
+            parse_state = PS_ERROR;
+            parse_error = PE_INVALID_CHAR;
+            break;
+        }
+    }
+
+    return num;
 }
 
 /*
@@ -258,9 +296,26 @@ Relation create_relation(FILE *stream) {
             ; // ignore whitespace
 
         } else if (uc.len == 1 && *c < 0) {
+            printf("%s\n", c);
             parse_state = PS_ERROR;
             parse_error = PE_MISSING_BRACKET;
             return r;
+
+        } else if (uc.len == 1 && isdigit(*c)) {
+            if (last_token != TOK_DC) {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_CHAR;
+                return r;
+            }
+
+            return_char(stream);
+            r.value.num = create_number(stream);
+            if (parse_state != PS_OK) {
+                return r;
+            }
+
+            r.value_type = VALUE_NUM;
+            last_token = TOK_NUM;
 
         } else {
             parse_state = PS_ERROR;

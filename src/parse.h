@@ -50,11 +50,10 @@ typedef struct ObjectList {
 
 // --------------------------------------------------------
 
-// #define PARSER_IGNORE_TRAILING_COMMAS
-// #define PARSER_TRY_TO_PARSE_WHEN_LAST_BRACKET_MISSING
-#define WARN_SECTION_TEXT_CHAR_LIMIT 300
-#define WARN_OPTION_TEXT_CHAR_LIMIT 80
-#define WARN_MAX_OPTION_COUNT 5
+#define MAX_SECTION_TEXT_CHAR_LIMIT 300
+#define MAX_OPTION_TEXT_CHAR_LIMIT 80
+#define MAX_OPTION_COUNT 5
+#define MAX_NUMERIC_VALUE 10000
 
 
 enum ParseStateEnum {
@@ -67,6 +66,7 @@ enum ParseErrorEnum {
     PE_EMPTY_FILE,
     PE_INVALID_CHAR,
     PE_MISSING_VALUE,
+    PE_NUMBER_TOO_BIG,
     PE_MISSING_BRACKET,
     PE_MISSING_DOUBLE_QUOTES,
 };
