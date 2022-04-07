@@ -366,12 +366,13 @@ static void test_invalid_number_with_whitespace(void) {
 }
 
 static void test_number_surpases_limit(void) {
-    construct_file_like_obj("{\"num\" : 542122345}");
+    construct_file_like_obj("{\"num\" : 542234345}");
 
     json_parse(stream);
 
     TEST_ASSERT_ERROR(PE_NUMBER_TOO_BIG);
-    TEST_ASSERT_POSITION(0, 14);
+    TEST_ASSERT_POSITION(0, 15);
+}
 }
 
 static void test_multiple_numbered_relations(void) {

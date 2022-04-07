@@ -53,7 +53,7 @@ typedef struct ObjectList {
 #define MAX_SECTION_TEXT_CHAR_LIMIT 300
 #define MAX_OPTION_TEXT_CHAR_LIMIT 80
 #define MAX_OPTION_COUNT 5
-#define MAX_NUMERIC_VALUE 10000
+#define MAX_NUMERIC_VALUE 0x186A0 // 100,000 decimal
 
 
 enum ParseStateEnum {
