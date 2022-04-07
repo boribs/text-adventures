@@ -373,6 +373,13 @@ static void test_number_surpases_limit(void) {
     TEST_ASSERT_ERROR(PE_NUMBER_TOO_BIG);
     TEST_ASSERT_POSITION(0, 15);
 }
+
+static void test_incomplete_number(void) {
+    construct_file_like_obj("{\"num\" : 1231");
+
+    json_parse(stream);
+
+    TEST_ASSERT_ERROR(PE_MISSING_BRACKET);
 }
 
 static void test_multiple_numbered_relations(void) {
@@ -468,6 +475,7 @@ int main() {
     RUN_TEST(test_invalid_relation_with_exponent);
     RUN_TEST(test_invalid_number_with_whitespace);
     RUN_TEST(test_number_surpases_limit);
+    RUN_TEST(test_incomplete_number);
     RUN_TEST(test_multiple_numbered_relations);
     RUN_TEST(test_string_and_numbered_relations);
 

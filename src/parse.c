@@ -152,6 +152,11 @@ static size_t create_number(FILE *stream) {
             return_char(stream);
             break;
 
+        } else if (c.len == 1 && *c.chr < 0) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_BRACKET;
+            break;
+
         } else {
             parse_state = PS_ERROR;
             parse_error = PE_INVALID_CHAR;
