@@ -251,12 +251,74 @@ static void test_incomplete_object(void) {
     TEST_ASSERT_POSITION(0, 15);
 }
 
+static void test_relation_with_trailing_comma(void) {
+    construct_file_like_obj("{\"key\" : \"value\",}");
+
+    Object actual = json_parse(stream);
+    Object expected = (Object){
+        .relation_count = 1,
+        .relations = (Relation *){
+            &(Relation){
+                .key = (String){
+                    .chars = "key",
+                    .len = 4
+                },
+                .value_type = VALUE_STR,
+                .value = (Value){.str = (String){
+                    .chars = "value",
+                    .len = 6
+                }}
+            }
+        }
+    };
+
+    TEST_ASSERT_NO_ERROR();
+    compare_objects(expected, actual);
+}
+
+static void teset_object_with_two_relations(void) {
+    construct_file_like_obj("{\"key1\" : \"value1\", \"key2\" : \"value2\"}");
+
+    Object actual = json_parse(stream);
+    Relation* rels = malloc(2 * sizeof(Relation));
+    rels[0] = (Relation){
+        .key = (String){
+            .chars = "key1",
+            .len = 5
+        },
+        .value_type = VALUE_STR,
+        .value = (Value){.str = (String){
+            .chars = "value1",
+            .len = 7
+        }}
+    };
+    rels[1] = (Relation){
+        .key = (String){
+            .chars = "key2",
+            .len = 5
+        },
+        .value_type = VALUE_STR,
+        .value = (Value){.str = (String){
+            .chars = "value2",
+            .len = 7
+        }}
+    };
+    Object expected = (Object){
+        .relation_count = 2,
+        .relations = rels
+    };
+
+    TEST_ASSERT_NO_ERROR();
+    compare_objects(expected, actual);
+}
+
 // JSON to Adventure conversion tests
 // ...
 
 int main() {
     UnityBegin("tests/parse_tests.c");
 
+    RUN_TEST(test_create_single_string);
     RUN_TEST(test_json_empty_str);
     RUN_TEST(test_jsom_empty_file_when_only_whitespace_present);
     RUN_TEST(test_json_empty_object);
@@ -272,6 +334,8 @@ int main() {
     RUN_TEST(test_invalid_double_colon2);
     RUN_TEST(test_incomplete_string);
     RUN_TEST(test_incomplete_object);
+    RUN_TEST(test_relation_with_trailing_comma);
+    RUN_TEST(teset_object_with_two_relations);
 
     return UnityEnd();
 }

@@ -40,6 +40,7 @@ utf8char get_char(FILE *stream) {
     return (utf8char){ .chr = out, .len = i };
 }
 
+// test this!
 void return_char(FILE *stream) {
     fseek(stream, -1, SEEK_CUR);
 
@@ -180,13 +181,16 @@ Object create_object(FILE *stream) {
             }
 
             out.relation_count++;
-            Relation *r = realloc(out.relations, out.relation_count * sizeof(Relation *));
+            Relation *r = realloc(out.relations, out.relation_count * sizeof(Relation));
             assert(r != NULL && "Error allocating memory for relation.");
             r[out.relation_count - 1] = rel;
             out.relations = r;
 
         } else if (utf8cmp(c.chr, "}") == 0) {
             break;
+
+        } else if (utf8cmp(c.chr, ",") == 0) {
+            ;
 
         } else if (!isutf8whitespace(c.chr)) {
             parse_state = PS_ERROR;
@@ -205,8 +209,6 @@ Relation create_relation(FILE *stream) {
     Relation r = (Relation){.value_type = -1};
 
     enum TokenType last_token = TOK_NON;
-
-    bool escaped = false;
 
     while (!feof(stream)) {
         utf8char uc = get_char(stream);
@@ -248,9 +250,12 @@ Relation create_relation(FILE *stream) {
         } else if (utf8cmp(c, "[") == 0) {
             assert(0 && "object lists not implemented.");
 
-        } else if (utf8cmp(c, "}") == 0) {
+        } else if (utf8cmp(c, "}") == 0 || utf8cmp(c, ",") == 0 ) {
             return_char(stream);
             break;
+
+        } else if (isutf8whitespace(c)) {
+            ; // ignore whitespace
 
         } else if (uc.len == 1 && *c < 0) {
             parse_state = PS_ERROR;
