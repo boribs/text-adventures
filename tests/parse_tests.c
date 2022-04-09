@@ -259,6 +259,15 @@ static void test_relation_with_trailing_comma(void) {
     compare_objects(expected, actual);
 }
 
+static void test_relation_with_tow_trailing_commas(void) {
+    construct_file_like_obj("{\"key\" : \"value\",,}");
+
+    json_parse(stream);
+
+    TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+    TEST_ASSERT_POSITION(0, 18);
+}
+
 static void teset_object_with_two_relations(void) {
     construct_file_like_obj("{\"key1\" : \"value1\", \"key2\" : \"value2\"}");
 
@@ -526,6 +535,7 @@ int main() {
     RUN_TEST(test_incomplete_string);
     RUN_TEST(test_incomplete_object);
     RUN_TEST(test_relation_with_trailing_comma);
+    RUN_TEST(test_relation_with_tow_trailing_commas);
     RUN_TEST(teset_object_with_two_relations);
     RUN_TEST(test_relation_with_numeric_value);
     RUN_TEST(test_invalid_relation_with_negative_signed_number);

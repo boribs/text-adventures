@@ -84,5 +84,6 @@ Object create_object(FILE *stream); // make static
 Relation create_relation(FILE *stream); // make static
 List *create_list(FILE *stream); // make static
 utf8char get_char(FILE *stream); // make static
+void return_char(FILE *stream);
 
 #endif // TEXT_ADVENTURES_PARSE

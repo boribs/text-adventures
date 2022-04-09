@@ -196,9 +196,6 @@ Object json_parse(FILE *stream) {
             // create_object sets error flag,
             // no need to check for error
 
-            // Object o = create_object(stream);
-            // if (parse_state != PS_OK) {}
-
             return create_object(stream);
 
         } else if (!isutf8whitespace(c.chr)) {
@@ -225,6 +222,7 @@ Object create_object(FILE *stream) {
         .relation_count = 0,
         .relations = malloc(sizeof(Relation *))
     };
+    bool allow_comma = false;
 
     while (!feof(stream)) {
         c = get_char(stream);
@@ -242,13 +240,19 @@ Object create_object(FILE *stream) {
             assert(r != NULL && "Error allocating memory for relation.");
             r[out.relation_count - 1] = rel;
             out.relations = r;
+            allow_comma = true;
 
         } else if (utf8cmp(c.chr, "}") == 0) {
             break;
 
         } else if (utf8cmp(c.chr, ",") == 0) {
-            // consider error when found not after element
-            ;
+            if (allow_comma) {
+                allow_comma = false;
+            } else {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_CHAR;
+                return out;
+            }
 
         } else if (utf8cmp(c.chr, "]") == 0) {
             parse_state = PS_ERROR;
