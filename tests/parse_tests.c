@@ -86,7 +86,11 @@ static void compare_objects(Object expected, Object actual) {
 }
 
 static void compare_lists(List *expected, List *actual) {
-    TEST_FAIL_MESSAGE("Not implemented.");
+    TEST_ASSERT_EQUAL(expected->object_count, actual->object_count);
+
+    for (size_t i = 0; i < actual->object_count; ++i) {
+        compare_objects(expected->elements[i], actual->elements[i]);
+    }
 }
 
 static void test_json_empty_str(void) {
@@ -134,18 +138,10 @@ static void test_allow_string_with_whitespace_as_key(void) {
     Object actual = json_parse(stream);
     Object expected = (Object){
         .relation_count = 1,
-        .relations = (Relation *){
-            &(Relation){
-                .key = (String){
-                    .chars = "key with whitespace",
-                    .len = 20
-                },
-                .value_type = VALUE_STR,
-                .value = (Value){.str = (String){
-                    .chars = "val",
-                    .len = 4
-                }}
-            }
+        .relations = &(Relation){
+            .key = (String){ .chars = "key with whitespace", .len = 20 },
+            .value_type = VALUE_STR,
+            .value = (Value){.str = (String){ .chars = "val", .len = 4 }}
         }
     };
     TEST_ASSERT_NO_ERROR();
@@ -252,18 +248,10 @@ static void test_relation_with_trailing_comma(void) {
     Object actual = json_parse(stream);
     Object expected = (Object){
         .relation_count = 1,
-        .relations = (Relation *){
-            &(Relation){
-                .key = (String){
-                    .chars = "key",
-                    .len = 4
-                },
-                .value_type = VALUE_STR,
-                .value = (Value){.str = (String){
-                    .chars = "value",
-                    .len = 6
-                }}
-            }
+        .relations = &(Relation){
+            .key = (String){ .chars = "key", .len = 4 },
+            .value_type = VALUE_STR,
+            .value.str = (String){ .chars = "value", .len = 6 }
         }
     };
 
@@ -275,28 +263,16 @@ static void teset_object_with_two_relations(void) {
     construct_file_like_obj("{\"key1\" : \"value1\", \"key2\" : \"value2\"}");
 
     Object actual = json_parse(stream);
-    Relation* rels = malloc(2 * sizeof(Relation));
+    Relation rels[2];
     rels[0] = (Relation){
-        .key = (String){
-            .chars = "key1",
-            .len = 5
-        },
+        .key = (String){ .chars = "key1", .len = 5 },
         .value_type = VALUE_STR,
-        .value = (Value){.str = (String){
-            .chars = "value1",
-            .len = 7
-        }}
+        .value.str = (String){ .chars = "value1", .len = 7 }
     };
     rels[1] = (Relation){
-        .key = (String){
-            .chars = "key2",
-            .len = 5
-        },
+        .key = (String){ .chars = "key2", .len = 5 },
         .value_type = VALUE_STR,
-        .value = (Value){.str = (String){
-            .chars = "value2",
-            .len = 7
-        }}
+        .value.str = (String){ .chars = "value2", .len = 7 }
     };
     Object expected = (Object){
         .relation_count = 2,
@@ -315,12 +291,9 @@ static void test_relation_with_numeric_value(void) {
         .relation_count = 1,
         .relations = (Relation*){
             &(Relation){
-                .key = (String){
-                    .chars = "num",
-                    .len = 4
-                },
+                .key = (String){ .chars = "num", .len = 4 },
                 .value_type = VALUE_NUM,
-                .value = (Value){ .num = 123 }
+                .value.num = 123
             }
         }
     };
@@ -386,22 +359,16 @@ static void test_multiple_numbered_relations(void) {
     construct_file_like_obj("{\"num1\":1,\"num2\":2}");
 
     Object actual = json_parse(stream);
-    Relation *rels = malloc(2 * sizeof(Relation));
+    Relation rels[2];
     rels[0] = (Relation){
-        .key = (String){
-            .chars = "num1",
-            .len = 5
-        },
+        .key = (String){ .chars = "num1", .len = 5 },
         .value_type = VALUE_NUM,
-        .value = (Value){ .num = 1 }
+        .value.num = 1
     };
     rels[1] = (Relation){
-        .key = (String){
-            .chars = "num2",
-            .len = 5
-        },
+        .key = (String){ .chars = "num2", .len = 5 },
         .value_type = VALUE_NUM,
-        .value = (Value){ .num = 2 }
+        .value.num = 2
     };
     Object expected = (Object){
         .relation_count = 2,
@@ -416,29 +383,120 @@ static void test_string_and_numbered_relations(void) {
     construct_file_like_obj("{\"num1\":1,\"key2\":\"second key\"}");
 
     Object actual = json_parse(stream);
-    Relation *rels = malloc(2 * sizeof(Relation));
+    Relation rels[2];
     rels[0] = (Relation){
-        .key = (String){
-            .chars = "num1",
-            .len = 5
-        },
+        .key = (String){ .chars = "num1", .len = 5 },
         .value_type = VALUE_NUM,
-        .value = (Value){ .num = 1 }
+        .value.num = 1
     };
     rels[1] = (Relation){
-        .key = (String){
-            .chars = "key2",
-            .len = 5
-        },
+        .key = (String){ .chars = "key2", .len = 5 },
         .value_type = VALUE_STR,
-        .value = (Value){ .str = (String){
-            .chars = "second key",
-            .len = 11
-        }}
+        .value.str = (String){.chars = "second key", .len = 11 }
     };
     Object expected = (Object){
         .relation_count = 2,
         .relations = rels
+    };
+
+    TEST_ASSERT_NO_ERROR();
+    compare_objects(expected, actual);
+}
+
+static void test_empty_list(void) {
+    construct_file_like_obj("{\"list\":[]}");
+
+    Object actual = json_parse(stream);
+
+    TEST_ASSERT_NO_ERROR();
+    compare_strings(
+        (String){ .chars = "list", .len = 5 },
+        actual.relations[0].key
+    );
+    TEST_ASSERT_EQUAL(VALUE_LIST, actual.relations[0].value_type);
+    TEST_ASSERT_EQUAL(0, actual.relations[0].value.list->object_count);
+}
+
+static void test_invalid_empty_list(void) {
+    construct_file_like_obj("{\"list\":[a]}");
+
+    json_parse(stream);
+
+    TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+    TEST_ASSERT_POSITION(0, 10);
+}
+
+static void test_invalid_empty_list_with_separator(void) {
+    construct_file_like_obj("{\"list\":[,]}");
+
+    json_parse(stream);
+
+    TEST_ASSERT_ERROR(PE_INVALID_CHAR);
+    TEST_ASSERT_POSITION(0, 10);
+}
+
+static void test_list_with_incomplete_object(void) {
+    construct_file_like_obj("{\"list\":[{]}");
+
+    json_parse(stream);
+
+    TEST_ASSERT_ERROR(PE_MISSING_BRACKET);
+}
+
+static void test_list_with_simple_object_inside(void) {
+    construct_file_like_obj("{\"list\":[{\"ando\":\"caminando\"}]}");
+
+    Object actual = json_parse(stream);
+    Object inner = (Object){
+        .relation_count = 1,
+        .relations = &(Relation){
+            .key = (String){ .chars = "ando", .len =  5 },
+            .value_type = VALUE_STR,
+            .value.str = (String){ .chars = "caminando", .len = 10 }
+        }
+    };
+    Object expected = (Object){
+        .relation_count = 1,
+        .relations = &(Relation){
+            .key = (String){ .chars = "list", .len = 5 },
+            .value_type = VALUE_LIST,
+            .value.list = &(List){ .object_count = 1, .elements = &inner }
+        }
+    };
+
+    TEST_ASSERT_NO_ERROR();
+    compare_objects(expected, actual);
+}
+
+static void test_list_with_two_objects_inside(void) {
+    construct_file_like_obj("{\"list\":[{\"ando\":\"caminando\"},{\"con un\":\"flow violento\"}]}");
+
+    Object actual = json_parse(stream);
+    Object elems[2];
+    elems[0] = (Object){
+        .relation_count = 1,
+        .relations = &(Relation){
+            .key = (String){ .chars = "ando", .len = 5 },
+            .value_type = VALUE_STR,
+            .value.str = (String){ .chars = "caminando", .len = 10 }
+        }
+    };
+    elems[1] = (Object){
+        .relation_count = 1,
+        .relations = &(Relation){
+            .key = (String){ .chars = "con un", .len = 7 },
+            .value_type = VALUE_STR,
+            .value.str = (String){ .chars = "flow violento", .len = 14 }
+        }
+    };
+
+    Object expected = (Object){
+        .relation_count = 1,
+        .relations = &(Relation){
+            .key = (String){ .chars = "list", .len = 5 },
+            .value_type = VALUE_LIST,
+            .value.list = &(List){ .object_count = 2, .elements = elems }
+        }
     };
 
     TEST_ASSERT_NO_ERROR();
@@ -478,6 +536,12 @@ int main() {
     RUN_TEST(test_incomplete_number);
     RUN_TEST(test_multiple_numbered_relations);
     RUN_TEST(test_string_and_numbered_relations);
+    RUN_TEST(test_empty_list);
+    RUN_TEST(test_invalid_empty_list);
+    RUN_TEST(test_invalid_empty_list_with_separator);
+    RUN_TEST(test_list_with_incomplete_object);
+    RUN_TEST(test_list_with_simple_object_inside);
+    RUN_TEST(test_list_with_two_objects_inside);
 
     return UnityEnd();
 }

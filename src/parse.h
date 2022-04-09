@@ -82,6 +82,7 @@ size_t p_col, p_row;
 Object json_parse(FILE *stream);
 Object create_object(FILE *stream); // make static
 Relation create_relation(FILE *stream); // make static
+List *create_list(FILE *stream); // make static
 utf8char get_char(FILE *stream); // make static
 
 #endif // TEXT_ADVENTURES_PARSE

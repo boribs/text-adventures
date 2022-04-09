@@ -12,8 +12,8 @@ enum TokenType {
     TOK_STR,
     TOK_NUM,
     TOK_DC,
+    TOK_LIST,
     // TOK_OBJ,
-    // TOK_LIST,
 };
 
 utf8char get_char(FILE *stream) {
@@ -77,6 +77,17 @@ static void new_string(String *s) {
         exit(1);
     }
     s->chars = p;
+}
+
+static void new_list(List *l) {
+    l->object_count = 0;
+    Object *o = malloc(sizeof(Object));
+
+    if (o == NULL) {
+        printf("Fatal error: can't malloc memory.");
+        exit(1);
+    }
+    l->elements = o;
 }
 
 /*
@@ -185,6 +196,9 @@ Object json_parse(FILE *stream) {
             // create_object sets error flag,
             // no need to check for error
 
+            // Object o = create_object(stream);
+            // if (parse_state != PS_OK) {}
+
             return create_object(stream);
 
         } else if (!isutf8whitespace(c.chr)) {
@@ -233,7 +247,13 @@ Object create_object(FILE *stream) {
             break;
 
         } else if (utf8cmp(c.chr, ",") == 0) {
+            // consider error when found not after element
             ;
+
+        } else if (utf8cmp(c.chr, "]") == 0) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_BRACKET;
+            return out;
 
         } else if (!isutf8whitespace(c.chr)) {
             parse_state = PS_ERROR;
@@ -291,7 +311,15 @@ Relation create_relation(FILE *stream) {
             assert(0 && "nested objects not implemented.");
 
         } else if (utf8cmp(c, "[") == 0) {
-            assert(0 && "object lists not implemented.");
+            List *l = create_list(stream);
+
+            if (parse_state != PS_OK) {
+                return r;
+            }
+
+            r.value_type = VALUE_LIST;
+            r.value.list = l;
+            last_token = TOK_LIST;
 
         } else if (utf8cmp(c, "}") == 0 || utf8cmp(c, ",") == 0 ) {
             return_char(stream);
@@ -301,7 +329,6 @@ Relation create_relation(FILE *stream) {
             ; // ignore whitespace
 
         } else if (uc.len == 1 && *c < 0) {
-            printf("%s\n", c);
             parse_state = PS_ERROR;
             parse_error = PE_MISSING_BRACKET;
             return r;
@@ -338,4 +365,69 @@ Relation create_relation(FILE *stream) {
     }
 
     return r;
+}
+
+List *create_list(FILE *stream) {
+    utf8char c;
+    List l = (List){ .object_count = 0 };
+    bool allow_comma = false;
+
+    while (!feof(stream)) {
+        c = get_char(stream);
+
+        if (utf8cmp(c.chr, "{") == 0) {
+            Object obj = create_object(stream);
+
+            if (parse_state != PS_OK) {
+                return NULL;
+            }
+
+            if (l.object_count == 0) {
+                new_list(&l);
+            }
+
+            l.object_count++;
+            Object *o = realloc(l.elements, l.object_count * sizeof(Object));
+            assert(o != NULL && "Error allocating memory for Object");
+            o[l.object_count - 1] = obj;
+            l.elements = o;
+            allow_comma = true;
+
+        } else if (utf8cmp(c.chr, ",") == 0) {
+            if (allow_comma) {
+                allow_comma = false;
+            } else {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_CHAR;
+                return NULL;
+            }
+
+        } else if (
+            utf8cmp(c.chr, "}") == 0 ||
+            (c.len == 1 && *c.chr < 0)
+            ) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_BRACKET;
+            return NULL;
+
+        } else if (utf8cmp(c.chr, "]") == 0) {
+            break;
+
+        } else if (!isutf8whitespace(c.chr)) {
+            parse_state = PS_ERROR;
+            parse_error = PE_INVALID_CHAR;
+            return NULL;
+        }
+
+    }
+
+    List *out = malloc(sizeof(List));
+    if (out == NULL) {
+        printf("Fatal error: Can't malloc parsed list.\n");
+        exit(1);
+    }
+    *out = l;
+
+    parse_state = PS_OK;
+    return out;
 }
