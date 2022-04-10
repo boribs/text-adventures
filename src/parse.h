@@ -75,7 +75,7 @@ enum ParseErrorEnum {
 // parse flags, set by json_parse
 enum ParseStateEnum parse_state;
 enum ParseErrorEnum parse_error;
-size_t p_col, p_row;
+size_t p_col, p_row, p_prev_col;
 
 // --------------------------------------------------------
 
@@ -84,6 +84,6 @@ Object create_object(FILE *stream); // make static
 Relation create_relation(FILE *stream); // make static
 List *create_list(FILE *stream); // make static
 utf8char get_char(FILE *stream); // make static
-void return_char(FILE *stream);
+void return_char(FILE *stream, utf8char c);
 
 #endif // TEXT_ADVENTURES_PARSE

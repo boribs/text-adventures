@@ -32,6 +32,7 @@ utf8char get_char(FILE *stream) {
         exit(1);
     }
 
+    p_prev_col = p_col;
     p_col++;
     if (utf8cmp(out, "\n") == 0) {
         p_row++;
@@ -41,14 +42,17 @@ utf8char get_char(FILE *stream) {
     return (utf8char){ .chr = out, .len = i };
 }
 
-// test this!
-void return_char(FILE *stream) {
-    fseek(stream, -1, SEEK_CUR);
+/*
+ * Seeks the stream back one character and updates
+ * p_col and  p_row.
+ */
+void return_char(FILE *stream, utf8char c) {
+    fseek(stream, -c.len, SEEK_CUR);
 
     if (p_col == 0) {
         p_row--;
     } else {
-        p_col--;
+        p_col = p_prev_col;
     }
 }
 
@@ -139,6 +143,11 @@ static String create_string(FILE *stream) {
     return out;
 }
 
+/*
+ * Parses a series of characters until a non-numeric character is found.
+ * Returns parsed number.
+ * If an invalid char is found, sets error flag.
+ */
 static size_t create_number(FILE *stream) {
     size_t num = 0;
     utf8char c;
@@ -160,7 +169,7 @@ static size_t create_number(FILE *stream) {
             utf8cmp(c.chr, "}") == 0 ||
             utf8cmp(c.chr, ",") == 0
         ) {
-            return_char(stream);
+            return_char(stream, c);
             break;
 
         } else if (c.len == 1 && *c.chr < 0) {
@@ -213,7 +222,6 @@ Object json_parse(FILE *stream) {
 /*
  * Creates an object from a stream of characters.
  * Object parsing ends until matching } is found.
- *
  * Sets parse_error flag on error.
  */
 Object create_object(FILE *stream) {
@@ -228,7 +236,7 @@ Object create_object(FILE *stream) {
         c = get_char(stream);
 
         if (utf8cmp(c.chr, "\"") == 0) {
-            return_char(stream);
+            return_char(stream, c);
 
             Relation rel = create_relation(stream);
             if (parse_state != PS_OK) {
@@ -272,6 +280,9 @@ Object create_object(FILE *stream) {
     return out;
 }
 
+/*
+ * Parses a stream of characters to create a relation.
+ */
 Relation create_relation(FILE *stream) {
     Relation r = (Relation){.value_type = -1};
 
@@ -326,7 +337,7 @@ Relation create_relation(FILE *stream) {
             last_token = TOK_LIST;
 
         } else if (utf8cmp(c, "}") == 0 || utf8cmp(c, ",") == 0 ) {
-            return_char(stream);
+            return_char(stream, uc);
             break;
 
         } else if (isutf8whitespace(c)) {
@@ -344,7 +355,7 @@ Relation create_relation(FILE *stream) {
                 return r;
             }
 
-            return_char(stream);
+            return_char(stream, uc);
             r.value.num = create_number(stream);
             if (parse_state != PS_OK) {
                 return r;
