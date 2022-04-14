@@ -7,6 +7,19 @@
 #include "utf8.h"
 #include "parse.h"
 
+
+static utf8char get_char(FILE *stream);
+static void return_char(FILE *stream, utf8char c);
+static void charcat(String *dst, utf8char *s);
+static void new_string(String *s);
+static void new_list(List *l);
+static String create_string(FILE *stream);
+static size_t create_number(FILE *stream);
+static Object create_object(FILE *stream);
+static Relation create_relation(FILE *stream);
+static List *create_list(FILE *stream);
+
+
 enum TokenType {
     TOK_NON,
     TOK_STR,
@@ -15,7 +28,7 @@ enum TokenType {
     TOK_LIST,
 };
 
-utf8char get_char(FILE *stream) {
+static utf8char get_char(FILE *stream) {
     utf8_int8_t pool[10] = {0};
     size_t i = 1;
 
@@ -45,7 +58,7 @@ utf8char get_char(FILE *stream) {
  * Seeks the stream back one character and updates
  * p_col and p_row.
  */
-void return_char(FILE *stream, utf8char c) {
+static void return_char(FILE *stream, utf8char c) {
     fseek(stream, -c.len, SEEK_CUR);
 
     if (p_col == 0) {
@@ -71,6 +84,9 @@ static void charcat(String *dst, utf8char *s) {
     utf8cat(dst->chars, s->chr);
 }
 
+/*
+ * Initializes an empty string (length = 1, chars = \0)
+ */
 static void new_string(String *s) {
     s->len = 1;
     char *p = calloc(1, sizeof(char));
@@ -82,6 +98,9 @@ static void new_string(String *s) {
     s->chars = p;
 }
 
+/*
+ * Initializes the list struct.
+ */
 static void new_list(List *l) {
     l->object_count = 0;
     Object *o = malloc(sizeof(Object));
@@ -223,7 +242,7 @@ Object json_parse(FILE *stream) {
  * Object parsing ends until matching } is found.
  * Sets parse_error flag on error.
  */
-Object create_object(FILE *stream) {
+static Object create_object(FILE *stream) {
     utf8char c;
     Object out = (Object){
         .relation_count = 0,
@@ -282,7 +301,7 @@ Object create_object(FILE *stream) {
 /*
  * Parses a stream of characters to create a relation.
  */
-Relation create_relation(FILE *stream) {
+static Relation create_relation(FILE *stream) {
     Relation r = (Relation){.value_type = -1};
 
     enum TokenType last_token = TOK_NON;
@@ -381,7 +400,7 @@ Relation create_relation(FILE *stream) {
     return r;
 }
 
-List *create_list(FILE *stream) {
+static List *create_list(FILE *stream) {
     utf8char c;
     List l = (List){ .object_count = 0 };
     bool allow_comma = false;
