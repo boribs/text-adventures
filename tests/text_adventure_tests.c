@@ -3,7 +3,6 @@
 #include <stdbool.h>
 
 #include "unity/unity.h"
-#include "../src/common.h"
 #include "../src/parse.h"
 
 FILE *stream;
@@ -31,6 +30,14 @@ void tearDown() {
 #define TEST_ASSERT_NO_ERROR()        TEST_ASSERT_STATE(PS_OK)
 #define TEST_ASSERT_POSITION(r, c)    TEST_ASSERT_EQUAL(r, p_row); \
                                       TEST_ASSERT_EQUAL(c, p_col)
+
+static Relation SRel(char *key, char *val) {
+    return (Relation){
+        .key = (String){ .chars = key, .len = utf8len(key) + 1 },
+        .value_type = VALUE_STR,
+        .value.str = (String){ .chars = val, .len = utf8len(val) + 1 }
+    };
+}
 
 static void construct_file_like_obj(char *s) {
     size_t ssize = strlen(s) + 1;
@@ -135,14 +142,11 @@ static void test_key_must_be_string(void) {
 static void test_allow_string_with_whitespace_as_key(void) {
     construct_file_like_obj("{\"key with whitespace\":\"val\"}");
 
+    Relation r = SRel("key with whitespace", "val");
     Object actual = json_parse(stream);
     Object expected = (Object){
         .relation_count = 1,
-        .relations = &(Relation){
-            .key = (String){ .chars = "key with whitespace", .len = 20 },
-            .value_type = VALUE_STR,
-            .value = (Value){.str = (String){ .chars = "val", .len = 4 }}
-        }
+        .relations = &r
     };
     TEST_ASSERT_NO_ERROR();
     compare_objects(expected, actual);
@@ -246,13 +250,10 @@ static void test_relation_with_trailing_comma(void) {
     construct_file_like_obj("{\"key\" : \"value\",}");
 
     Object actual = json_parse(stream);
+    Relation r = SRel("key", "value");
     Object expected = (Object){
         .relation_count = 1,
-        .relations = &(Relation){
-            .key = (String){ .chars = "key", .len = 4 },
-            .value_type = VALUE_STR,
-            .value.str = (String){ .chars = "value", .len = 6 }
-        }
+        .relations = &r
     };
 
     TEST_ASSERT_NO_ERROR();
@@ -272,16 +273,9 @@ static void teset_object_with_two_relations(void) {
     construct_file_like_obj("{\"key1\" : \"value1\", \"key2\" : \"value2\"}");
 
     Object actual = json_parse(stream);
-    Relation rels[2];
-    rels[0] = (Relation){
-        .key = (String){ .chars = "key1", .len = 5 },
-        .value_type = VALUE_STR,
-        .value.str = (String){ .chars = "value1", .len = 7 }
-    };
-    rels[1] = (Relation){
-        .key = (String){ .chars = "key2", .len = 5 },
-        .value_type = VALUE_STR,
-        .value.str = (String){ .chars = "value2", .len = 7 }
+    Relation rels[2] = {
+        SRel("key1", "value1"),
+        SRel("key2", "value2"),
     };
     Object expected = (Object){
         .relation_count = 2,
@@ -392,16 +386,13 @@ static void test_string_and_numbered_relations(void) {
     construct_file_like_obj("{\"num1\":1,\"key2\":\"second key\"}");
 
     Object actual = json_parse(stream);
-    Relation rels[2];
-    rels[0] = (Relation){
-        .key = (String){ .chars = "num1", .len = 5 },
-        .value_type = VALUE_NUM,
-        .value.num = 1
-    };
-    rels[1] = (Relation){
-        .key = (String){ .chars = "key2", .len = 5 },
-        .value_type = VALUE_STR,
-        .value.str = (String){.chars = "second key", .len = 11 }
+    Relation rels[2] = {
+        rels[0] = (Relation){
+            .key = (String){ .chars = "num1", .len = 5 },
+            .value_type = VALUE_NUM,
+            .value.num = 1
+        },
+        SRel("key2", "second key")
     };
     Object expected = (Object){
         .relation_count = 2,
@@ -456,13 +447,10 @@ static void test_list_with_simple_object_inside(void) {
     construct_file_like_obj("{\"list\":[{\"ando\":\"caminando\"}]}");
 
     Object actual = json_parse(stream);
+    Relation r = SRel("ando", "caminando");
     Object inner = (Object){
         .relation_count = 1,
-        .relations = &(Relation){
-            .key = (String){ .chars = "ando", .len =  5 },
-            .value_type = VALUE_STR,
-            .value.str = (String){ .chars = "caminando", .len = 10 }
-        }
+        .relations = &r
     };
     Object expected = (Object){
         .relation_count = 1,
@@ -482,21 +470,17 @@ static void test_list_with_two_objects_inside(void) {
 
     Object actual = json_parse(stream);
     Object elems[2];
+    Relation r[2] = {
+        SRel("ando", "caminando"),
+        SRel("con un", "flow violento"),
+    };
     elems[0] = (Object){
         .relation_count = 1,
-        .relations = &(Relation){
-            .key = (String){ .chars = "ando", .len = 5 },
-            .value_type = VALUE_STR,
-            .value.str = (String){ .chars = "caminando", .len = 10 }
-        }
+        .relations = &r[0]
     };
     elems[1] = (Object){
         .relation_count = 1,
-        .relations = &(Relation){
-            .key = (String){ .chars = "con un", .len = 7 },
-            .value_type = VALUE_STR,
-            .value.str = (String){ .chars = "flow violento", .len = 14 }
-        }
+        .relations = &r[1]
     };
 
     Object expected = (Object){
@@ -520,25 +504,13 @@ static void test_file_with_single_section(void) {
     TEST_ASSERT_NO_ERROR();
     TEST_ASSERT_EQUAL(4, actual.relation_count);
 
-    Relation rexp = (Relation){
-        .key = (String){ .chars = "title", .len = 6 },
-        .value_type = VALUE_STR,
-        .value.str = (String){ .chars = "first test file!", .len = 17 }
-    };
+    Relation rexp = SRel("title", "first test file!");
     compare_relations(rexp, actual.relations[0]);
 
-    rexp = (Relation){
-        .key = (String){ .chars = "author", .len = 7 },
-        .value_type = VALUE_STR,
-        .value.str = (String){ .chars = "me", .len = 3 }
-    };
+    rexp = SRel("author", "me");
     compare_relations(rexp, actual.relations[1]);
 
-    rexp = (Relation){
-        .key = (String){ .chars = "version", .len = 8 },
-        .value_type = VALUE_STR,
-        .value.str = (String){ .chars = "1.0", .len = 4 }
-    };
+    rexp = SRel("version", "1.0");
     compare_relations(rexp, actual.relations[2]);
 
     TEST_ASSERT_EQUAL(VALUE_LIST, actual.relations[3].value_type);
@@ -568,8 +540,29 @@ static void test_file_with_multiple_sections(void) {
     );
 }
 
+// JSON to Adventure tests
+static void test_convert_section_with_no_options(void) {
+    Relation r[] = {
+        SRel("title", "some section"),
+        SRel("author", "me"),
+    };
+    Object section = (Object){
+        .relation_count = sizeof(r) / sizeof(Relation),
+        .relations = r
+    };
+
+}
+
+static void test_convert_section(void) {}
+static void test_convert_sections(void) {}
+static void test_convert_small_adventure(void) {}
+static void test_convert_bigger_adventure(void) {}
+static void test_convert_adventure_missing_title(void) {}
+static void test_convert_adventure_missing_author(void) {}
+static void test_convert_adventure_missing_version(void) {}
+
 int main() {
-    UnityBegin("tests/parse_tests.c");
+    UnityBegin("tests/text_adventure_tests.c");
 
     RUN_TEST(test_json_empty_str);
     RUN_TEST(test_jsom_empty_file_when_only_whitespace_present);
