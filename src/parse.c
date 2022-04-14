@@ -402,7 +402,7 @@ static Relation create_relation(FILE *stream) {
 
 static List *create_list(FILE *stream) {
     utf8char c;
-    List l = (List){ .object_count = 0 };
+    List l = (List){ .object_count = 0, .elements = NULL };
     bool allow_comma = false;
 
     while (!feof(stream)) {

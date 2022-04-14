@@ -407,6 +407,7 @@ static void test_empty_list(void) {
     );
     TEST_ASSERT_EQUAL(VALUE_LIST, actual.relations[0].value_type);
     TEST_ASSERT_EQUAL(0, actual.relations[0].value.list->object_count);
+    TEST_ASSERT_NULL(actual.relations[0].value.list->elements);
 }
 
 static void test_invalid_empty_list(void) {
