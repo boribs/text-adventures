@@ -39,6 +39,14 @@ static Relation SRel(char *key, char *val) {
     };
 }
 
+static Relation NRel(char *key, size_t val) {
+    return (Relation){
+        .key = (String){ .chars = key, .len = utf8len(key) + 1 },
+        .value_type = VALUE_NUM,
+        .value.num = val
+    };
+}
+
 static void construct_file_like_obj(char *s) {
     size_t ssize = strlen(s) + 1;
     buffer = malloc(sizeof(char) * ssize);
@@ -290,15 +298,10 @@ static void test_relation_with_numeric_value(void) {
     construct_file_like_obj("{\"num\" : 123}");
 
     Object actual = json_parse(stream);
+    Relation r = NRel("num", 123);
     Object expected = (Object){
         .relation_count = 1,
-        .relations = (Relation*){
-            &(Relation){
-                .key = (String){ .chars = "num", .len = 4 },
-                .value_type = VALUE_NUM,
-                .value.num = 123
-            }
-        }
+        .relations = &r
     };
 
     TEST_ASSERT_NO_ERROR();
@@ -362,16 +365,9 @@ static void test_multiple_numbered_relations(void) {
     construct_file_like_obj("{\"num1\":1,\"num2\":2}");
 
     Object actual = json_parse(stream);
-    Relation rels[2];
-    rels[0] = (Relation){
-        .key = (String){ .chars = "num1", .len = 5 },
-        .value_type = VALUE_NUM,
-        .value.num = 1
-    };
-    rels[1] = (Relation){
-        .key = (String){ .chars = "num2", .len = 5 },
-        .value_type = VALUE_NUM,
-        .value.num = 2
+    Relation rels[2] = {
+        NRel("num1", 1),
+        NRel("num2", 2),
     };
     Object expected = (Object){
         .relation_count = 2,
@@ -387,11 +383,7 @@ static void test_string_and_numbered_relations(void) {
 
     Object actual = json_parse(stream);
     Relation rels[2] = {
-        rels[0] = (Relation){
-            .key = (String){ .chars = "num1", .len = 5 },
-            .value_type = VALUE_NUM,
-            .value.num = 1
-        },
+        NRel("num1", 1),
         SRel("key2", "second key")
     };
     Object expected = (Object){
