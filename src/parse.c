@@ -13,7 +13,6 @@ enum TokenType {
     TOK_NUM,
     TOK_DC,
     TOK_LIST,
-    // TOK_OBJ,
 };
 
 utf8char get_char(FILE *stream) {
@@ -44,7 +43,7 @@ utf8char get_char(FILE *stream) {
 
 /*
  * Seeks the stream back one character and updates
- * p_col and  p_row.
+ * p_col and p_row.
  */
 void return_char(FILE *stream, utf8char c) {
     fseek(stream, -c.len, SEEK_CUR);
@@ -433,7 +432,6 @@ List *create_list(FILE *stream) {
             parse_error = PE_INVALID_CHAR;
             return NULL;
         }
-
     }
 
     List *out = malloc(sizeof(List));

@@ -512,8 +512,61 @@ static void test_list_with_two_objects_inside(void) {
     compare_objects(expected, actual);
 }
 
-// JSON to Adventure conversion tests
-// ...
+static void test_file_with_single_section(void) {
+    stream = fopen("tests/test_file_with_single_section.json", "r");
+
+    Object actual = json_parse(stream);
+
+    TEST_ASSERT_NO_ERROR();
+    TEST_ASSERT_EQUAL(4, actual.relation_count);
+
+    Relation rexp = (Relation){
+        .key = (String){ .chars = "title", .len = 6 },
+        .value_type = VALUE_STR,
+        .value.str = (String){ .chars = "first test file!", .len = 17 }
+    };
+    compare_relations(rexp, actual.relations[0]);
+
+    rexp = (Relation){
+        .key = (String){ .chars = "author", .len = 7 },
+        .value_type = VALUE_STR,
+        .value.str = (String){ .chars = "me", .len = 3 }
+    };
+    compare_relations(rexp, actual.relations[1]);
+
+    rexp = (Relation){
+        .key = (String){ .chars = "version", .len = 8 },
+        .value_type = VALUE_STR,
+        .value.str = (String){ .chars = "1.0", .len = 4 }
+    };
+    compare_relations(rexp, actual.relations[2]);
+
+    TEST_ASSERT_EQUAL(VALUE_LIST, actual.relations[3].value_type);
+
+    Object sec = actual.relations[3].value.list->elements[0];
+    TEST_ASSERT_EQUAL(3, sec.relation_count);
+    TEST_ASSERT_EQUAL(0, sec.relations[2].value.list->object_count);
+}
+
+static void test_file_with_multiple_sections(void) {
+    stream = fopen("tests/test_file_with_multiple_sections.json", "r");
+
+    Object actual = json_parse(stream);
+    TEST_ASSERT_NO_ERROR();
+
+    TEST_ASSERT_EQUAL(4, actual.relation_count);
+
+    List *sections = actual.relations[3].value.list;
+    TEST_ASSERT_EQUAL(3, sections->object_count);
+    TEST_ASSERT_EQUAL(3, sections->elements[0].relation_count);
+    TEST_ASSERT_EQUAL(3, sections->elements[1].relation_count);
+    TEST_ASSERT_EQUAL(3, sections->elements[2].relation_count);
+
+    compare_strings(
+        (String){ .chars = "back to where we started", .len = 25 },
+        sections->elements[2].relations[2].value.list->elements[0].relations[1].value.str
+    );
+}
 
 int main() {
     UnityBegin("tests/parse_tests.c");
@@ -552,6 +605,8 @@ int main() {
     RUN_TEST(test_list_with_incomplete_object);
     RUN_TEST(test_list_with_simple_object_inside);
     RUN_TEST(test_list_with_two_objects_inside);
+    RUN_TEST(test_file_with_single_section);
+    RUN_TEST(test_file_with_multiple_sections);
 
     return UnityEnd();
 }
