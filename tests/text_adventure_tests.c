@@ -108,6 +108,33 @@ static void compare_lists(List *expected, List *actual) {
     }
 }
 
+static void compare_option(Option expected, Option actual) {
+    TEST_ASSERT_EQUAL_STRING(expected.text, actual.text);
+    TEST_ASSERT_EQUAL(expected.section_id, actual.section_id);
+}
+
+static void compare_section(Section expected, Section actual) {
+    TEST_ASSERT_EQUAL_STRING(expected.text, actual.text);
+    TEST_ASSERT_EQUAL_MESSAGE(expected.id, actual.id, "[id]");
+    TEST_ASSERT_EQUAL(expected.option_count, actual.option_count);
+
+    for (size_t i = 0; i < expected.option_count; ++i) {
+        compare_option(expected.options[i], actual.options[i]);
+    }
+}
+
+static void compare_adventures(Adventure expected, Adventure actual) {
+    TEST_ASSERT_EQUAL_STRING(expected.title, actual.title);
+    TEST_ASSERT_EQUAL_STRING(expected.author, actual.author);
+    TEST_ASSERT_EQUAL_STRING(expected.version, actual.version);
+    TEST_ASSERT_EQUAL_MESSAGE(expected.section_count, actual.section_count, "[section count]");
+    // Ignore current_section, that's used during adventure playthrough
+
+    for (size_t i = 0; i < expected.section_count; ++i) {
+        compare_section(expected.sections[i], actual.sections[i]);
+    }
+}
+
 static void test_json_empty_str(void) {
     construct_file_like_obj("");
 
@@ -534,25 +561,93 @@ static void test_file_with_multiple_sections(void) {
 }
 
 // JSON to Adventure tests
-static void test_convert_section_with_no_options(void) {
-    Relation r[] = {
-        SRel("title", "some section"),
-        SRel("author", "me"),
-    };
-    Object section = (Object){
-        .relation_count = sizeof(r) / sizeof(Relation),
-        .relations = r
+static void test_convert_small_adventure(void) {
+    stream = fopen("tests/test_file_with_single_section.json", "r");
+
+    Adventure expected = (Adventure){
+        .title = "first test file!",
+        .author = "me",
+        .version = "1.0",
+        .section_count = 1,
+        .sections = &(Section){
+            .text = "This is the first and only section.",
+            .id = 0,
+            .option_count = 0,
+            .options = NULL
+        }
     };
 
+    Object adventure = json_parse(stream);
+    Adventure actual = json_to_adventure(adventure);
+
+    TEST_ASSERT_NO_ERROR();
+    compare_adventures(expected, actual);
 }
 
-static void test_convert_section(void) {}
-static void test_convert_sections(void) {}
-static void test_convert_small_adventure(void) {}
+static void test_convert_not_so_small_adventure(void) {
+    stream = fopen("tests/test_file_with_multiple_sections.json", "r");
+
+    Option o1 = (Option){
+        .section_id = 1,
+        .text = "to section A!",
+    };
+    Option o2 = (Option){
+        .section_id = 2,
+        .text = "to section B!",
+    };
+    Option o3 = (Option){
+        .section_id = 0,
+        .text = "back to where we started",
+    };
+
+    Option s0[] = {o1, o2};
+    Option s1[] = {o3, o2};
+    Option s2[] = {o3, o1};
+
+    Section s[] = {
+        (Section){
+            .id = 0,
+            .text = "This is the first and only section.",
+            .option_count = 2,
+            .options = s0
+        },
+        (Section){
+            .id = 1,
+            .text = "This is section A.",
+            .option_count = 2,
+            .options = s1
+        },
+        (Section){
+            .id = 2,
+            .text = "This is section B.",
+            .option_count = 2,
+            .options = s2
+        },
+    };
+    Adventure expected = (Adventure){
+        .title = "second test file!",
+        .author = "me",
+        .version = "1.0",
+        .section_count = 3,
+        .sections = s,
+    };
+
+    Object adventure = json_parse(stream);
+    Adventure actual = json_to_adventure(adventure);
+
+    TEST_ASSERT_NO_ERROR();
+    compare_adventures(expected, actual);
+}
+
 static void test_convert_bigger_adventure(void) {}
 static void test_convert_adventure_missing_title(void) {}
 static void test_convert_adventure_missing_author(void) {}
 static void test_convert_adventure_missing_version(void) {}
+static void test_convert_adventure_section_missing_id(void) {}
+static void test_convert_adventure_section_missing_text(void) {}
+static void test_convert_adventure_section_missing_options(void) {}
+static void test_convert_adventure_option_missing_id(void) {}
+static void test_convert_adventure_option_missing_text(void) {}
 
 int main() {
     UnityBegin("tests/text_adventure_tests.c");
@@ -593,6 +688,8 @@ int main() {
     RUN_TEST(test_list_with_two_objects_inside);
     RUN_TEST(test_file_with_single_section);
     RUN_TEST(test_file_with_multiple_sections);
+    RUN_TEST(test_convert_small_adventure);
+    RUN_TEST(test_convert_not_so_small_adventure);
 
     return UnityEnd();
 }

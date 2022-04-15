@@ -463,3 +463,234 @@ static List *create_list(FILE *stream) {
     parse_state = PS_OK;
     return out;
 }
+
+/*
+ * Creates Options out of a JSON-parsed List.
+ */
+static Option *json_to_option(List *options) {
+    if (options->object_count == 0) {
+        parse_state = PS_OK;
+        return NULL;
+    }
+
+    Option *out = malloc(sizeof(Option) * options->object_count);
+    Object *opt;
+    char *key;
+    bool set_id;
+
+    for (size_t i = 0; i < options->object_count; ++i) {
+        opt = &options->elements[i];
+        set_id = false;
+        Option o = (Option){
+            .text = NULL,
+            .section_id = 0,
+        };
+
+        if (opt->relation_count != 2) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_KEY;
+            free(out);
+            return NULL;
+        }
+
+        for (size_t j = 0; j < opt->relation_count; ++j) {
+            key = opt->relations[j].key.chars;
+
+            if (utf8cmp("text", key) == 0) {
+                if (o.text != NULL) {
+                    parse_state = PS_ERROR;
+                    parse_error = PE_REPEATED_KEY;
+                    free(out);
+                    return NULL;
+                }
+
+                o.text = opt->relations[j].value.str.chars;
+
+            } else if (utf8cmp("id", key) == 0) {
+                if (set_id) {
+                    parse_state = PS_ERROR;
+                    parse_error = PE_REPEATED_KEY;
+                    free(out);
+                    return NULL;
+                }
+
+                o.section_id = opt->relations[j].value.num;
+                set_id = true;
+
+            } else {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_KEY;
+                free(out);
+                return NULL;
+            }
+        }
+
+        out[i] = o;
+    }
+
+    parse_state = PS_OK;
+    return out;
+}
+
+/*
+ * Creates Sections out of a JSON-parsed List.
+ */
+static Section *json_to_section(List *sections) {
+    if (sections->object_count == 0) {
+        parse_state = PS_ERROR;
+        parse_error = PE_NO_SECTIONS;
+        return NULL;
+    }
+
+    Section *out = malloc(sizeof(Section) * sections->object_count);
+    char *key;
+    Object *sec;
+    bool set_id;
+
+    for (size_t i = 0; i < sections->object_count; ++i) {
+        sec = &sections->elements[i];
+        set_id = false;
+        Section s = (Section){
+            .text = NULL,
+            .id = 0,
+            .option_count = 0,
+            .options = NULL,
+        };
+
+        if (sec->relation_count != 3) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_KEY;
+            free(out);
+            return NULL;
+        }
+
+        for (size_t j = 0; j < sec->relation_count; ++j) {
+            key = sec->relations[j].key.chars;
+
+            if (utf8cmp("text", key) == 0) {
+                if (s.text != NULL) {
+                    parse_state = PS_ERROR;
+                    parse_error = PE_REPEATED_KEY;
+                    free(out);
+                    return NULL;
+                }
+
+                s.text = sec->relations[j].value.str.chars;
+
+            } else if (utf8cmp("id", key) == 0) {
+                if (set_id) {
+                    parse_state = PS_ERROR;
+                    parse_error = PE_REPEATED_KEY;
+                    free(out);
+                    return NULL;
+                }
+
+                s.id = sec->relations[j].value.num;
+                set_id = true;
+
+            } else if (utf8cmp("options", key) == 0) {
+                if (s.options != NULL) {
+                    parse_state = PS_ERROR;
+                    parse_error = PE_REPEATED_KEY;
+                    free(out);
+                    return NULL;
+                }
+
+                Option *opt = json_to_option(sec->relations[j].value.list);
+                if (parse_state != PS_OK) {
+                    free(out);
+                    return NULL;
+                }
+
+                s.option_count = sec->relations[j].value.list->object_count;
+                s.options = opt;
+                // free stuff
+
+            } else {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_KEY;
+                free(out);
+                return NULL;
+            }
+        }
+
+        out[i] = s;
+    }
+
+    parse_state = PS_OK;
+    return out;
+}
+
+/*
+ * Creates Adventure out of JSON-parsed Object.
+ */
+Adventure json_to_adventure(Object adventure) {
+    Adventure out = (Adventure){
+        .title = NULL,
+        .author = NULL,
+        .version = NULL,
+        .sections = NULL,
+        .section_count = 0
+    };
+
+    if (adventure.relation_count != 4) {
+        parse_state = PS_ERROR;
+        parse_error = PE_MISSING_KEY;
+        return out;
+    }
+
+    for (int i = 0; i < 4; ++i) {
+        char *key = adventure.relations[i].key.chars;
+
+        if (utf8cmp("title", key) == 0) {
+            if (out.title != NULL) {
+                parse_state = PS_ERROR;
+                parse_error = PE_REPEATED_KEY;
+                return out;
+            }
+
+            out.title = adventure.relations[i].value.str.chars;
+
+        } else if (utf8cmp("author", key) == 0) {
+            if (out.author != NULL) {
+                parse_state = PS_ERROR;
+                parse_error = PE_REPEATED_KEY;
+                return out;
+            }
+
+            out.author = adventure.relations[i].value.str.chars;
+
+        } else if (utf8cmp("version", key) == 0) {
+            if (out.version != NULL) {
+                parse_state = PS_ERROR;
+                parse_error = PE_REPEATED_KEY;
+                return out;
+            }
+
+            out.version = adventure.relations[i].value.str.chars;
+
+        } else if (utf8cmp("sections", key) == 0) {
+            if (out.sections != NULL) {
+                parse_state = PS_ERROR;
+                parse_error = PE_REPEATED_KEY;
+                return out;
+            }
+
+            Section *s = json_to_section(adventure.relations[i].value.list);
+            if (parse_state != PS_OK) {
+                return out;
+            }
+
+            out.section_count = adventure.relations[i].value.list->object_count;
+            out.sections = s;
+
+        } else {
+            parse_state = PS_ERROR;
+            parse_error = PE_INVALID_KEY;
+            return out;
+        }
+    }
+
+    parse_state = PS_OK;
+    return out;
+}
