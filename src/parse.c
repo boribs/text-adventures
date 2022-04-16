@@ -604,7 +604,7 @@ static Section *json_to_section(List *sections) {
 
                 s.option_count = sec->relations[j].value.list->object_count;
                 s.options = opt;
-                // free stuff
+                free(sec->relations[j].value.list->elements);
 
             } else {
                 parse_state = PS_ERROR;
@@ -683,6 +683,7 @@ Adventure json_to_adventure(Object adventure) {
 
             out.section_count = adventure.relations[i].value.list->object_count;
             out.sections = s;
+            free(adventure.relations[i].value.list->elements);
 
         } else {
             parse_state = PS_ERROR;
