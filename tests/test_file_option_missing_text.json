@@ -1,0 +1,48 @@
+{
+    "title" : "second test file!",
+    "author" : "me",
+    "version" : "1.0",
+    "sections" : [
+        {
+            "id" : 0,
+            "text" : "This is the first and only section.",
+            "options" : [
+                {
+                    "id" : 1,
+                    "text" : "to section A!"
+                },
+                {
+                    "id" : 2,
+                    "text" : "to section B!"
+                }
+            ]
+        },
+        {
+            "id": 1,
+            "text" : "This is section A.",
+            "options" : [
+                {
+                    "id" : 0,
+                    "text" : "back to where we started"
+                },
+                {
+                    "id" : 2
+                }
+            ]
+        },
+        {
+            "id": 2,
+            "text" : "This is section B.",
+            "options" : [
+                {
+                    "id" : 0,
+                    "text" : "back to where we started"
+                },
+                {
+                    "id" : 1,
+                    "text" : "to section A!"
+                }
+            ]
+        }
+    ]
+}

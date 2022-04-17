@@ -577,8 +577,7 @@ static void test_convert_small_adventure(void) {
         }
     };
 
-    Object adventure = json_parse(stream);
-    Adventure actual = json_to_adventure(adventure);
+    Adventure actual = json_to_adventure(json_parse(stream));
 
     TEST_ASSERT_NO_ERROR();
     compare_adventures(expected, actual);
@@ -632,22 +631,87 @@ static void test_convert_not_so_small_adventure(void) {
         .sections = s,
     };
 
-    Object adventure = json_parse(stream);
-    Adventure actual = json_to_adventure(adventure);
+    Adventure actual = json_to_adventure(json_parse(stream));
 
     TEST_ASSERT_NO_ERROR();
     compare_adventures(expected, actual);
 }
 
-static void test_convert_bigger_adventure(void) {}
-static void test_convert_adventure_missing_title(void) {}
-static void test_convert_adventure_missing_author(void) {}
-static void test_convert_adventure_missing_version(void) {}
-static void test_convert_adventure_section_missing_id(void) {}
-static void test_convert_adventure_section_missing_text(void) {}
-static void test_convert_adventure_section_missing_options(void) {}
-static void test_convert_adventure_option_missing_id(void) {}
-static void test_convert_adventure_option_missing_text(void) {}
+static void test_convert_bigger_adventure(void) {
+    TEST_FAIL_MESSAGE("Make this!");
+}
+
+static void test_convert_adventure_missing_title(void) {
+    stream = fopen("tests/test_file_missing_title.json", "r");
+
+    Adventure actual = json_to_adventure(json_parse(stream));
+
+    TEST_ASSERT_ERROR(PE_MISSING_KEY);
+}
+
+static void test_convert_adventure_missing_author(void) {
+    stream = fopen("tests/test_file_missing_author.json", "r");
+
+    json_to_adventure(json_parse(stream));
+
+    TEST_ASSERT_ERROR(PE_MISSING_KEY);
+}
+
+static void test_convert_adventure_missing_version(void) {
+    stream = fopen("tests/test_file_missing_version.json", "r");
+
+    json_to_adventure(json_parse(stream));
+
+    TEST_ASSERT_ERROR(PE_MISSING_KEY);
+}
+
+static void test_convert_adventure_missing_sections(void) {
+    construct_file_like_obj("{\"title\":\"\",\"author\":\"\",\"version\":\"\"}");
+
+    json_to_adventure(json_parse(stream));
+
+    TEST_ASSERT_ERROR(PE_MISSING_KEY);
+}
+
+static void test_convert_adventure_section_missing_id(void) {
+    stream = fopen("tests/test_file_section_missing_id.json", "r");
+
+    json_to_adventure(json_parse(stream));
+
+    TEST_ASSERT_ERROR(PE_MISSING_KEY);
+}
+
+static void test_convert_adventure_section_missing_text(void) {
+    stream = fopen("tests/test_file_section_missing_text.json", "r");
+
+    json_to_adventure(json_parse(stream));
+
+    TEST_ASSERT_ERROR(PE_MISSING_KEY);
+}
+
+static void test_convert_adventure_section_missing_options(void) {
+    stream = fopen("tests/test_file_section_missing_options.json", "r");
+
+    json_to_adventure(json_parse(stream));
+
+    TEST_ASSERT_ERROR(PE_MISSING_KEY);
+}
+
+static void test_convert_adventure_option_missing_id(void) {
+    stream = fopen("tests/test_file_option_missing_id.json", "r");
+
+    json_to_adventure(json_parse(stream));
+
+    TEST_ASSERT_ERROR(PE_MISSING_KEY);
+}
+
+static void test_convert_adventure_option_missing_text(void) {
+    stream = fopen("tests/test_file_option_missing_text.json", "r");
+
+    json_to_adventure(json_parse(stream));
+
+    TEST_ASSERT_ERROR(PE_MISSING_KEY);
+}
 
 int main() {
     UnityBegin("tests/text_adventure_tests.c");
@@ -690,6 +754,16 @@ int main() {
     RUN_TEST(test_file_with_multiple_sections);
     RUN_TEST(test_convert_small_adventure);
     RUN_TEST(test_convert_not_so_small_adventure);
+    RUN_TEST(test_convert_bigger_adventure);
+    RUN_TEST(test_convert_adventure_missing_title);
+    RUN_TEST(test_convert_adventure_missing_author);
+    RUN_TEST(test_convert_adventure_missing_version);
+    RUN_TEST(test_convert_adventure_missing_sections);
+    RUN_TEST(test_convert_adventure_section_missing_id);
+    RUN_TEST(test_convert_adventure_section_missing_text);
+    RUN_TEST(test_convert_adventure_section_missing_options);
+    RUN_TEST(test_convert_adventure_option_missing_id);
+    RUN_TEST(test_convert_adventure_option_missing_text);
 
     return UnityEnd();
 }
