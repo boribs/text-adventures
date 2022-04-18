@@ -1,17 +1,13 @@
 #ifndef TEXT_ADVENTURES_ADVENTURE
 #define TEXT_ADVENTURES_ADVENTURE
 
-#include <stdbool.h>
-
-enum InputOptions { // as many as MAX_OPTION_COUNT (common.h)
-    ADVENTURE_INPUT_OPTION_1,
-    ADVENTURE_INPUT_OPTION_2,
-    ADVENTURE_INPUT_OPTION_3,
-    ADVENTURE_INPUT_OPTION_4,
-    ADVENTURE_INPUT_OPTION_5,
+enum InputType {
+    ADVENTURE_INPUT_OPTION,
     ADVENTURE_INPUT_QUIT,
     ADVENTURE_INPUT_INVALID,
 };
+
+char input;
 
 #define KEY_QUIT 'q'
 #define L_O_PADDING 1

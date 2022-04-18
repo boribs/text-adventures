@@ -1,291 +1,702 @@
 #include <stdio.h>
-#include <string.h>
+#include <stdlib.h>
 #include <stdbool.h>
+#include <assert.h>
 #include <ctype.h>
 
-#include "common.h"
+#include "utf8.h"
 #include "parse.h"
 
-static bool is_valid_text_token_char(char c) {
-    return ((int)c >= 33 && (int)c <= 126);
+
+static utf8char get_char(FILE *stream);
+static void return_char(FILE *stream, utf8char c);
+static void charcat(String *dst, utf8char *s);
+static void new_string(String *s);
+static void new_list(List *l);
+static String create_string(FILE *stream);
+static size_t create_number(FILE *stream);
+static Object create_object(FILE *stream);
+static Relation create_relation(FILE *stream);
+static List *create_list(FILE *stream);
+
+
+enum TokenType {
+    TOK_NON,
+    TOK_STR,
+    TOK_NUM,
+    TOK_DC,
+    TOK_LIST,
+};
+
+static utf8char get_char(FILE *stream) {
+    utf8_int8_t pool[10] = {0};
+    size_t i = 1;
+
+    pool[0] = fgetc(stream);
+
+    while (!feof(stream) && utf8nvalid(pool, i) != 0) {
+        pool[i++] = fgetc(stream);
+    }
+    char *out = utf8ndup(pool, i);
+
+    if (!out) {
+        printf("Error extracting char\n");
+        exit(1);
+    }
+
+    p_prev_col = p_col;
+    p_col++;
+    if (utf8cmp(out, "\n") == 0) {
+        p_row++;
+        p_col = 0;
+    }
+
+    return (utf8char){ .chr = out, .len = i };
 }
 
-static bool is_whitespace(char c) {
-    return c == ' ' || c == '\n' || c == '\t';
-}
+/*
+ * Seeks the stream back one character and updates
+ * p_col and p_row.
+ */
+static void return_char(FILE *stream, utf8char c) {
+    fseek(stream, -c.len, SEEK_CUR);
 
-static char * trim_r(char *s) {
-    for (size_t i = strlen(s) - 1; i >= 0; --i) {
-        if (!is_whitespace(s[i])) {
-            s[i + 1] = 0;
-            return realloc(s, sizeof(char) * (i + 2));
-        }
-    }
-
-    return s;
-}
-
-static void add_token_to_list(struct TokenList *tl, struct Token *t) {
-    if (t->tstr != NULL) {
-        t->tstr = trim_r(t->tstr);
-    }
-    tok_add_token(tl, t);
-}
-
-static struct TokenError construct_option(struct TokenList *tl, struct Token *t, struct Opt *out) {
-    struct Token token = *t;
-
-    if (token.ttype != TOK_TEXT) {
-        return te(P_STATE_INVALID_SYNTAX_EXPECTED_TEXT, token.col, token.row); // invalid syntax - expected text
-    }
-    out->text = token.tstr;
-
-    token = tok_pop_last_token(tl);
-    if (token.ttype != TOK_ID) {
-        return te(P_STATE_INVALID_SYNTAX_EXPECTED_ID, token.col, token.row); // invalid syntax - expected id
-    }
-    out->sec_id = strtol(token.tstr, NULL, 10);
-    free(token.tstr);
-
-    return te_ok();
-}
-
-static struct TokenError construct_options(struct TokenList *tl, struct Sec *out) {
-    struct Token t = tok_pop_last_token(tl);
-    struct Opt *options = malloc(sizeof(struct Opt) * MAX_OPTION_COUNT);
-    size_t opt_count = 0;
-
-    while (t.ttype != TOK_OPENING_OPTIONS_DELIMITER) {
-        if (opt_count == MAX_OPTION_COUNT) {
-            return te(P_STATE_TOO_MANY_OPTIONS_IN_SECTION, t.col, t.row); // too many options!
-        }
-
-        struct TokenError terr = construct_option(tl, &t, options + opt_count);
-        if (terr.state != P_STATE_OK) return terr;
-        opt_count++;
-
-        t = tok_pop_last_token(tl);
-    }
-
-    // invert options, necessary because they're read backwards
-    struct Opt tmp;
-    for (size_t i = 0; i < opt_count / 2; ++i) {
-        tmp = options[i];
-        options[i] = options[opt_count - i - 1];
-        options[opt_count - i - 1] = tmp;
-    }
-
-    if (opt_count == 0) {
-        out->options = NULL;
-        free(options);
+    if (p_col == 0) {
+        p_row--;
     } else {
-        out->options = realloc(options, sizeof(struct Opt) * opt_count);
+        p_col = p_prev_col;
     }
-    out->opt_count = opt_count;
-
-    return te_ok();
 }
 
-static struct TokenError construct_section(struct TokenList *tl, struct Sec *s) {
-    struct TokenError terr = construct_options(tl, s);
-    if (terr.state != P_STATE_OK) return terr;
+/*
+ * Similar to strcat, but with String and utf8char
+ * This also reallocates memory
+ */
+static void charcat(String *dst, utf8char *s) {
+    dst->len += s->len;
+    char *p = realloc(dst->chars, dst->len);
 
-    struct Token t = tok_pop_last_token(tl);
-    if (t.ttype != TOK_TEXT) {
-        return te(P_STATE_INVALID_SYNTAX_EXPECTED_TEXT, t.col, t.row); // invalid syntax - expected text
+    if (p == NULL) {
+        printf("Fatal error: can't realloc memory.");
+        exit(1);
     }
-    s->text = t.tstr;
-
-    t = tok_pop_last_token(tl);
-    if (t.ttype != TOK_ID) {
-        return te(P_STATE_INVALID_SYNTAX_EXPECTED_ID, t.col, t.row); // invalid syntax - expected id
-    }
-    s->id = strtol(t.tstr, NULL, 10);
-    free(t.tstr);
-
-    return te_ok();
+    dst->chars = p;
+    utf8cat(dst->chars, s->chr);
 }
 
-struct TokenError parse(FILE *file, struct Adventure *a) {
-    struct Sec *sections = NULL;
-    size_t section_count = 0;
+/*
+ * Initializes an empty string (length = 1, chars = \0)
+ */
+static void new_string(String *s) {
+    s->len = 1;
+    char *p = calloc(1, sizeof(char));
 
-    struct TokenList tokens = (struct TokenList){.count=0, .list=NULL};
-    struct Token t = {.tstr=NULL};
-    size_t col = 0, row = 1;
-    tok_clear(&t);
+    if (p == NULL) {
+        printf("Fatal error: can't calloc memory.");
+        exit(1);
+    }
+    s->chars = p;
+}
 
-    struct TokenError terr;
+/*
+ * Initializes the list struct.
+ */
+static void new_list(List *l) {
+    l->object_count = 0;
+    Object *o = malloc(sizeof(Object));
 
-    while (!feof(file)) {
-        char c = getc(file);
+    if (o == NULL) {
+        printf("Fatal error: can't malloc memory.");
+        exit(1);
+    }
+    l->elements = o;
+}
 
-        if (c == '[') {
-            if (t.ttype == TOK_TEXT) {
-                add_token_to_list(&tokens, &t);
-            }
+/*
+ * Parses a series of characters until a non-escaped " is found.
+ * This assumes the first " is not part of the character set to parse.
+ */
+static String create_string(FILE *stream) {
+    String out = (String){};
+    new_string(&out);
+    bool escape = false, complete = false;
 
-            if (t.ttype == TOK_EMPTY) {
-                t = (struct Token) { .ttype=TOK_OPENING_OPTIONS_DELIMITER, .col=col, .row=row };
-                add_token_to_list(&tokens, &t);
+    while (!feof(stream)) {
+        utf8char c = get_char(stream);
+
+        if (utf8cmp(c.chr, "\"") == 0) {
+            if (escape) {
+                charcat(&out, &c);
+                escape = false;
             } else {
-                return te(P_STATE_INVALID_CHARACTER_OPENING_OPTION_DEL, col, row); // invalid char - found [ in ID
-            }
-            col++;
-
-        } else if (c == ']') {
-            if (t.ttype == TOK_TEXT) {
-                add_token_to_list(&tokens, &t);
-            } else if (t.ttype != TOK_EMPTY) {
-                return te(P_STATE_INVALID_CHARACTER_CLOSING_OPTION_DEL, col, row); // invalid char - found ] in ID
+                complete = true;
+                break;
             }
 
-            col++;
-            section_count++;
-            sections = realloc(sections, sizeof(struct Sec) * section_count);
-            terr = construct_section(&tokens, sections + section_count - 1);
-            if (terr.state != P_STATE_OK) return terr;
-
-        } else if (c == '<') {
-            if (t.ttype == TOK_TEXT) {
-                add_token_to_list(&tokens, &t);
+        } else if (utf8cmp(c.chr, "\\") == 0) {
+            if (escape) {
+                charcat(&out, &c);
+                escape = false;
+            } else {
+                escape = true;
             }
 
-            if (t.ttype == TOK_EMPTY) { t.ttype = TOK_ID; t.col = col; t.row = row; }
-            else { return te(P_STATE_INVALID_CHARACTER_OPENING_ID_DEL, col, row); } // invalid char - found < inside ID
-            col++;
+        } else if (c.len == 0 && *c.chr < 0) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_DOUBLE_QUOTES;
+            return out;
 
-        } else if (isdigit(c)) {
-            if (t.ttype == TOK_EMPTY) { t.ttype = TOK_TEXT; t.col = col; t.row = row; }
-            if (t.ttype == TOK_TEXT || t.ttype == TOK_ID) { tok_addch(c, &t); }
-            else { return te_un(); } // unreachable
-            col++;
-
-        } else if (c == '>') {
-            col++;
-            if (t.ttype == TOK_TEXT) {
-                add_token_to_list(&tokens, &t);
-            }
-
-            if (t.ttype == TOK_ID) {
-                if (t.tstr == NULL) { return te(P_STATE_MISSING_ID_NUMBER, t.col, t.row); }
-
-                add_token_to_list(&tokens, &t);
-            } else { return te(P_STATE_INVALID_CHARACTER_CLOSING_ID_DEL, col, row); } // invalid syntax - found > outside of ID
-
-        } else if (is_valid_text_token_char(c)) {
-            if (t.ttype == TOK_EMPTY) { t.ttype = TOK_TEXT; t.col = col; t.row = row; }
-            if (t.ttype == TOK_TEXT) { tok_addch(c, &t); }
-            else if (t.ttype == TOK_ID) { return te(P_STATE_INVALID_CHAR_IN_ID, col, row); } // invalid char - non-numeric value inside ID
-            col++;
-        }
-
-        else if (is_whitespace(c)) {
-            col++;
-            if (t.ttype == TOK_TEXT) { tok_addch(c, &t); }
-            if (c == '\n') { row++; col = 1; }
+        } else {
+            charcat(&out, &c);
         }
     }
 
-    if (t.ttype != TOK_EMPTY) {
-        return te(P_STATE_INVALID_LAST_TOKEN, 0, 0); // last token should be "]", which
-                                                     // is handled on read
+    if (complete) {
+        parse_state = PS_OK;
+    } else {
+        parse_state = PS_ERROR;
+        parse_error = PE_MISSING_DOUBLE_QUOTES;
     }
 
-    if (section_count < MIN_SECTION_COUNT) {
-        return te(P_STATE_VERY_FEW_SECTIONS_IN_ADVENTURE, 0, 0);
-    }
+    return out;
+}
 
-    t = tok_pop_last_token(&tokens);
-    if (t.ttype != TOK_TEXT) return te(P_STATE_MISSING_ADVENTURE_DATA, 0, 0); // invalid first token - expected text
+/*
+ * Parses a series of characters until a non-numeric character is found.
+ * Returns parsed number.
+ * If an invalid char is found, sets error flag.
+ */
+static size_t create_number(FILE *stream) {
+    size_t num = 0;
+    utf8char c;
 
-    char tmp[strlen(t.tstr) + 1];
-    tmp[strlen(tmp)] = 0;
-    strcpy(tmp, t.tstr);
-    free(t.tstr);
+    while (!feof(stream)) {
+        if (num > MAX_NUMERIC_VALUE) {
+            parse_state = PS_ERROR;
+            parse_error = PE_NUMBER_TOO_BIG;
+            break;
+        }
 
-    char *tok = strtok(tmp, "\n");
-    if (tok == NULL) return te_un(); // invalid first line - expected title
-    a->title = trim_r(strdup(tok));
+        c = get_char(stream);
 
-    tok = strtok(NULL, "\n");
-    if (tok == NULL) return te(P_STATE_MISSING_AUTHOR, t.col, t.row); // invalid second line - expected author
-    a->author = trim_r(strdup(tok));
+        if (c.len == 1 && isdigit(*c.chr)) {
+            num = num * 10 + ((*c.chr) - '0');
 
-    tok = strtok(NULL, "\n");
-    if (tok == NULL) return te(P_STATE_MISSING_VERSION, t.col, t.row); // invalid third line - expected version
-    a->version = trim_r(strdup(tok));
+        } else if (
+            isutf8whitespace(c.chr)  ||
+            utf8cmp(c.chr, "}") == 0 ||
+            utf8cmp(c.chr, ",") == 0
+        ) {
+            return_char(stream, c);
+            break;
 
-    // ignore the rest of the first token
+        } else if (c.len == 1 && *c.chr < 0) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_BRACKET;
+            break;
 
-    free(tokens.list);
-
-    // check for repeated sections
-    for (size_t i = 0; i < section_count; ++i) {
-        for (size_t j = 1; j < section_count; ++j) {
-            if (i == j) continue;
-
-            if (sections[i].id == sections[j].id) {
-                return te(P_STATE_REPEATED_SECTION_ID, sections[j].id, 0);
-            }
+        } else {
+            parse_state = PS_ERROR;
+            parse_error = PE_INVALID_CHAR;
+            break;
         }
     }
 
-    // check for self-pointing section
-    for (size_t i = 0; i < section_count; ++i) {
-        for (size_t j = 0; j < sections[i].opt_count; ++j) {
-            if (sections[i].options[j].sec_id == sections[i].id) {
-                return te(P_STATE_SELF_POINTING_SECTION, sections[j].id, 0);
-            }
+    return num;
+}
+
+/*
+ * Takes a stream of characters and interprets it  as JSON.
+ * Sets parse_error flag on error.
+ */
+Object json_parse(FILE *stream) {
+    p_col = 0;
+    p_row = 0;
+    utf8char c;
+
+    while (!feof(stream)) {
+        c = get_char(stream);
+
+        if (*c.chr < 0) break;
+
+        if (utf8cmp(c.chr, "{") == 0) {
+            // create_object sets error flag,
+            // no need to check for error
+
+            return create_object(stream);
+
+        } else if (!isutf8whitespace(c.chr)) {
+            parse_state = PS_ERROR;
+            parse_error = PE_INVALID_CHAR;
+            return (Object){};
         }
     }
 
-    // check for unreachable sections
-    for (size_t i = 1; i < section_count; ++i) {
-        size_t id = sections[i].id;
-        bool found = false;
+    parse_state = PS_ERROR;
+    parse_error = PE_EMPTY_FILE; // nothing to parse
+    return (Object){};
+}
 
-        for (size_t j = 0; j < section_count; ++j) {
-            if (i == j) continue;
+/*
+ * Creates an object from a stream of characters.
+ * Object parsing ends until matching } is found.
+ * Sets parse_error flag on error.
+ */
+static Object create_object(FILE *stream) {
+    utf8char c;
+    Object out = (Object){
+        .relation_count = 0,
+        .relations = malloc(sizeof(Relation *))
+    };
+    bool allow_comma = false;
 
-            for (size_t o = 0; o < sections[j].opt_count; ++o) {
-                if (sections[j].options[o].sec_id == id) {
-                    found = true;
-                    break;
+    while (!feof(stream)) {
+        c = get_char(stream);
+
+        if (utf8cmp(c.chr, "\"") == 0) {
+            return_char(stream, c);
+
+            Relation rel = create_relation(stream);
+            if (parse_state != PS_OK) {
+                return out;
+            }
+
+            out.relation_count++;
+            Relation *r = realloc(out.relations, out.relation_count * sizeof(Relation));
+            assert(r != NULL && "Error allocating memory for relation.");
+            r[out.relation_count - 1] = rel;
+            out.relations = r;
+            allow_comma = true;
+
+        } else if (utf8cmp(c.chr, "}") == 0) {
+            break;
+
+        } else if (utf8cmp(c.chr, ",") == 0) {
+            if (allow_comma) {
+                allow_comma = false;
+            } else {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_CHAR;
+                return out;
+            }
+
+        } else if (utf8cmp(c.chr, "]") == 0) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_BRACKET;
+            return out;
+
+        } else if (!isutf8whitespace(c.chr)) {
+            parse_state = PS_ERROR;
+            parse_error = PE_INVALID_CHAR;
+            return out;
+        }
+    }
+
+    // TODO: check for empty object?
+
+    parse_state = PS_OK;
+    return out;
+}
+
+/*
+ * Parses a stream of characters to create a relation.
+ */
+static Relation create_relation(FILE *stream) {
+    Relation r = (Relation){.value_type = -1};
+
+    enum TokenType last_token = TOK_NON;
+
+    while (!feof(stream)) {
+        utf8char uc = get_char(stream);
+        char *c = uc.chr;
+
+        if (utf8cmp(c, "\"") == 0) {
+            if (last_token != TOK_NON && last_token != TOK_DC) {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_CHAR;
+                return r;
+            }
+
+            String str = create_string(stream);
+            if (parse_state != PS_OK) {
+                return r;
+            }
+
+            if (last_token == TOK_NON) {
+                r.key = str;
+            } else if (last_token == TOK_DC) {
+                r.value_type = VALUE_STR;
+                r.value.str = str;
+            }
+
+            last_token = TOK_STR;
+
+        } else if (utf8cmp(c, ":") == 0) {
+            if (last_token == TOK_DC || r.value_type != -1) {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_CHAR;
+                return r;
+            }
+
+            last_token = TOK_DC;
+
+        } else if (utf8cmp(c, "{") == 0) {
+            assert(0 && "nested objects not implemented.");
+
+        } else if (utf8cmp(c, "[") == 0) {
+            List *l = create_list(stream);
+
+            if (parse_state != PS_OK) {
+                return r;
+            }
+
+            r.value_type = VALUE_LIST;
+            r.value.list = l;
+            last_token = TOK_LIST;
+
+        } else if (utf8cmp(c, "}") == 0 || utf8cmp(c, ",") == 0 ) {
+            return_char(stream, uc);
+            break;
+
+        } else if (isutf8whitespace(c)) {
+            ; // ignore whitespace
+
+        } else if (uc.len == 1 && *c < 0) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_BRACKET;
+            return r;
+
+        } else if (uc.len == 1 && isdigit(*c)) {
+            if (last_token != TOK_DC) {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_CHAR;
+                return r;
+            }
+
+            return_char(stream, uc);
+            r.value.num = create_number(stream);
+            if (parse_state != PS_OK) {
+                return r;
+            }
+
+            r.value_type = VALUE_NUM;
+            last_token = TOK_NUM;
+
+        } else {
+            parse_state = PS_ERROR;
+            parse_error = PE_INVALID_CHAR;
+            return r;
+        }
+    }
+
+    if (r.value_type == -1) {
+        parse_state = PS_ERROR;
+        parse_error = PE_MISSING_VALUE;
+
+    } else {
+        parse_state = PS_OK;
+    }
+
+    return r;
+}
+
+static List *create_list(FILE *stream) {
+    utf8char c;
+    List l = (List){ .object_count = 0, .elements = NULL };
+    bool allow_comma = false;
+
+    while (!feof(stream)) {
+        c = get_char(stream);
+
+        if (utf8cmp(c.chr, "{") == 0) {
+            Object obj = create_object(stream);
+
+            if (parse_state != PS_OK) {
+                return NULL;
+            }
+
+            if (l.object_count == 0) {
+                new_list(&l);
+            }
+
+            l.object_count++;
+            Object *o = realloc(l.elements, l.object_count * sizeof(Object));
+            assert(o != NULL && "Error allocating memory for Object");
+            o[l.object_count - 1] = obj;
+            l.elements = o;
+            allow_comma = true;
+
+        } else if (utf8cmp(c.chr, ",") == 0) {
+            if (allow_comma) {
+                allow_comma = false;
+            } else {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_CHAR;
+                return NULL;
+            }
+
+        } else if (
+            utf8cmp(c.chr, "}") == 0 ||
+            (c.len == 1 && *c.chr < 0)
+            ) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_BRACKET;
+            return NULL;
+
+        } else if (utf8cmp(c.chr, "]") == 0) {
+            break;
+
+        } else if (!isutf8whitespace(c.chr)) {
+            parse_state = PS_ERROR;
+            parse_error = PE_INVALID_CHAR;
+            return NULL;
+        }
+    }
+
+    List *out = malloc(sizeof(List));
+    if (out == NULL) {
+        printf("Fatal error: Can't malloc parsed list.\n");
+        exit(1);
+    }
+    *out = l;
+
+    parse_state = PS_OK;
+    return out;
+}
+
+/*
+ * Creates Options out of a JSON-parsed List.
+ */
+static Option *json_to_option(List *options) {
+    if (options->object_count == 0) {
+        parse_state = PS_OK;
+        return NULL;
+
+    } else if (options->object_count > MAX_OPTION_COUNT) {
+        parse_state = PS_ERROR;
+        parse_error = PE_TOO_MANY_OPTIONS;
+        return NULL;
+    }
+
+    Option *out = malloc(sizeof(Option) * options->object_count);
+    Object *opt;
+    char *key;
+    bool set_id;
+
+    for (size_t i = 0; i < options->object_count; ++i) {
+        opt = &options->elements[i];
+        set_id = false;
+        Option o = (Option){
+            .text = NULL,
+            .section_id = 0,
+        };
+
+        if (opt->relation_count != 2) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_KEY;
+            free(out);
+            return NULL;
+        }
+
+        for (size_t j = 0; j < opt->relation_count; ++j) {
+            key = opt->relations[j].key.chars;
+
+            if (utf8cmp("text", key) == 0) {
+                if (o.text != NULL) {
+                    parse_state = PS_ERROR;
+                    parse_error = PE_REPEATED_KEY;
+                    free(out);
+                    return NULL;
                 }
-            }
 
-            if (found) break;
-        }
+                o.text = opt->relations[j].value.str.chars;
 
-        if (!found) {
-            return te(P_STATE_UNREACHABLE_SECTION, id, 0);
-        }
-    }
-
-    // check for nonexistent sections
-    for (size_t i = 0; i < section_count; ++i) {
-        for (size_t o = 0; o < sections[i].opt_count; ++o) {
-            size_t oid = sections[i].options[o].sec_id;
-            bool found = false;
-
-            for (size_t j = 0; j < section_count; ++j) {
-                if (i == j) continue;
-
-                if (sections[j].id == oid) {
-                    found = true;
-                    break;
+            } else if (utf8cmp("id", key) == 0) {
+                if (set_id) {
+                    parse_state = PS_ERROR;
+                    parse_error = PE_REPEATED_KEY;
+                    free(out);
+                    return NULL;
                 }
+
+                o.section_id = opt->relations[j].value.num;
+                set_id = true;
+
+            } else {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_KEY;
+                free(out);
+                return NULL;
+            }
+        }
+
+        out[i] = o;
+    }
+
+    parse_state = PS_OK;
+    return out;
+}
+
+/*
+ * Creates Sections out of a JSON-parsed List.
+ */
+static Section *json_to_section(List *sections) {
+    if (sections->object_count == 0) {
+        parse_state = PS_ERROR;
+        parse_error = PE_NO_SECTIONS;
+        return NULL;
+    }
+
+    Section *out = malloc(sizeof(Section) * sections->object_count);
+    char *key;
+    Object *sec;
+    bool set_id;
+
+    for (size_t i = 0; i < sections->object_count; ++i) {
+        sec = &sections->elements[i];
+        set_id = false;
+        Section s = (Section){
+            .text = NULL,
+            .id = 0,
+            .option_count = 0,
+            .options = NULL,
+        };
+
+        if (sec->relation_count != 3) {
+            parse_state = PS_ERROR;
+            parse_error = PE_MISSING_KEY;
+            free(out);
+            return NULL;
+        }
+
+        for (size_t j = 0; j < sec->relation_count; ++j) {
+            key = sec->relations[j].key.chars;
+
+            if (utf8cmp("text", key) == 0) {
+                if (s.text != NULL) {
+                    parse_state = PS_ERROR;
+                    parse_error = PE_REPEATED_KEY;
+                    free(out);
+                    return NULL;
+                }
+
+                s.text = sec->relations[j].value.str.chars;
+
+            } else if (utf8cmp("id", key) == 0) {
+                if (set_id) {
+                    parse_state = PS_ERROR;
+                    parse_error = PE_REPEATED_KEY;
+                    free(out);
+                    return NULL;
+                }
+
+                s.id = sec->relations[j].value.num;
+                set_id = true;
+
+            } else if (utf8cmp("options", key) == 0) {
+                if (s.options != NULL) {
+                    parse_state = PS_ERROR;
+                    parse_error = PE_REPEATED_KEY;
+                    free(out);
+                    return NULL;
+                }
+
+                Option *opt = json_to_option(sec->relations[j].value.list);
+                if (parse_state != PS_OK) {
+                    free(out);
+                    return NULL;
+                }
+
+                s.option_count = sec->relations[j].value.list->object_count;
+                s.options = opt;
+                free(sec->relations[j].value.list->elements);
+
+            } else {
+                parse_state = PS_ERROR;
+                parse_error = PE_INVALID_KEY;
+                free(out);
+                return NULL;
+            }
+        }
+
+        out[i] = s;
+    }
+
+    parse_state = PS_OK;
+    return out;
+}
+
+/*
+ * Creates Adventure out of JSON-parsed Object.
+ */
+Adventure json_to_adventure(Object adventure) {
+    Adventure out = (Adventure){
+        .title = NULL,
+        .author = NULL,
+        .version = NULL,
+        .sections = NULL,
+        .section_count = 0
+    };
+
+    if (adventure.relation_count != 4) {
+        parse_state = PS_ERROR;
+        parse_error = PE_MISSING_KEY;
+        return out;
+    }
+
+    for (int i = 0; i < 4; ++i) {
+        char *key = adventure.relations[i].key.chars;
+
+        if (utf8cmp("title", key) == 0) {
+            if (out.title != NULL) {
+                parse_state = PS_ERROR;
+                parse_error = PE_REPEATED_KEY;
+                return out;
             }
 
-            if (!found) {
-                return te(P_STATE_NONEXISTENT_SECTION, sections[i].id, oid);
+            out.title = adventure.relations[i].value.str.chars;
+
+        } else if (utf8cmp("author", key) == 0) {
+            if (out.author != NULL) {
+                parse_state = PS_ERROR;
+                parse_error = PE_REPEATED_KEY;
+                return out;
             }
+
+            out.author = adventure.relations[i].value.str.chars;
+
+        } else if (utf8cmp("version", key) == 0) {
+            if (out.version != NULL) {
+                parse_state = PS_ERROR;
+                parse_error = PE_REPEATED_KEY;
+                return out;
+            }
+
+            out.version = adventure.relations[i].value.str.chars;
+
+        } else if (utf8cmp("sections", key) == 0) {
+            if (out.sections != NULL) {
+                parse_state = PS_ERROR;
+                parse_error = PE_REPEATED_KEY;
+                return out;
+            }
+
+            Section *s = json_to_section(adventure.relations[i].value.list);
+            if (parse_state != PS_OK) {
+                return out;
+            }
+
+            out.section_count = adventure.relations[i].value.list->object_count;
+            out.sections = s;
+            free(adventure.relations[i].value.list->elements);
+
+        } else {
+            parse_state = PS_ERROR;
+            parse_error = PE_INVALID_KEY;
+            return out;
         }
     }
 
-    a->sections = sections;
-    a->sec_count = section_count;
-
-    return te_ok();
+    parse_state = PS_OK;
+    return out;
 }

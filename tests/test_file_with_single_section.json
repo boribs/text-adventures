@@ -1,0 +1,10 @@
+{
+    "title" : "first test file!",
+    "author" : "me",
+    "version" : "1.0",
+    "sections" : [{
+        "id" : 0,
+        "text" : "This is the first and only section.",
+        "options" : []
+    }]
+}

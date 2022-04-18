@@ -1,8 +1,7 @@
 #include <stdio.h>
-#include "../src/common.h"
 #include "../src/adventure.h"
 
-#define ADVENTURE_FILE "adventurefiles/veryshortadventure.adv"
+#define ADVENTURE_FILE "tests/test_file_bigger_adventure.json"
 
 int main() {
     play_adventure(ADVENTURE_FILE);
