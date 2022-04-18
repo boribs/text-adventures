@@ -14,8 +14,8 @@ It reads files that follow this syntax (JSON):
         "text": "section text",
         "options": [
             {
-                id: #option id,
-                text: "option text"
+                "id": #option id,
+                "text": "option text"
             }
         ]
     }
