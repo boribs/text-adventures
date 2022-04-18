@@ -638,7 +638,37 @@ static void test_convert_not_so_small_adventure(void) {
 }
 
 static void test_convert_bigger_adventure(void) {
-    TEST_FAIL_MESSAGE("Make this!");
+    stream = fopen("tests/test_file_bigger_adventure.json", "r");
+
+    Adventure actual = json_to_adventure(json_parse(stream));
+
+    TEST_ASSERT_NO_ERROR();
+    TEST_ASSERT_EQUAL(5, actual.section_count);
+    TEST_ASSERT_EQUAL_STRING(
+        "this is the very first thing the user sees after running the game.",
+        actual.sections[0].text
+    );
+    TEST_ASSERT_EQUAL(2, actual.sections[0].option_count);
+    TEST_ASSERT_EQUAL_STRING(
+        "oh, the user has selected this option! now the story has to continue somehow.",
+        actual.sections[1].text
+    );
+    TEST_ASSERT_EQUAL(1, actual.sections[1].option_count);
+    TEST_ASSERT_EQUAL_STRING(
+        "So, after getting here, the story experiences some inconveniences. The plott thickens.",
+        actual.sections[2].text
+    );
+    TEST_ASSERT_EQUAL(2, actual.sections[2].option_count);
+    TEST_ASSERT_EQUAL_STRING(
+        "The user changed the outcome and the main character is having a happy ending.",
+        actual.sections[3].text
+    );
+    TEST_ASSERT_EQUAL(0, actual.sections[3].option_count);
+    TEST_ASSERT_EQUAL_STRING(
+        "The user didn't change the outcome and the main character dies.",
+        actual.sections[4].text
+    );
+    TEST_ASSERT_EQUAL(0, actual.sections[4].option_count);
 }
 
 static void test_convert_adventure_missing_title(void) {

@@ -1,0 +1,53 @@
+{
+    "title" : "this adventure is bigger than the others",
+    "author" : "me",
+    "version" : "1.0",
+    "sections" : [
+        {
+            "id" : 0,
+            "text" : "this is the very first thing the user sees after running the game.",
+            "options" : [
+                {
+                    "id" : 1,
+                    "text" : "this indicates the user that if they select this option, something is going to happen"
+                },
+                {
+                    "id" : 2,
+                    "text" : "this too but different."
+                }
+            ]
+        },
+        {
+            "id" : 1,
+            "text" : "oh, the user has selected this option! now the story has to continue somehow.",
+            "options" : [{
+                "id" : 2,
+                "text" : "this is the only option the user has!"
+            }]
+        },
+        {
+            "id" : 2,
+            "text" : "So, after getting here, the story experiences some inconveniences. The plott thickens.",
+            "options" : [
+                {
+                    "id" : 3,
+                    "text" : "You can change the outcome!"
+                },
+                {
+                    "id" : 4,
+                    "text" : "or not"
+                }
+            ]
+        },
+        {
+            "id" : 3,
+            "text" : "The user changed the outcome and the main character is having a happy ending.",
+            "options" : []
+        },
+        {
+            "id" : 4,
+            "text" : "The user didn't change the outcome and the main character dies.",
+            "options" : []
+        }
+    ]
+}
