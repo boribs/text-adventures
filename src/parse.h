@@ -99,6 +99,7 @@ enum ParseErrorEnum {
     PE_INVALID_KEY,
     PE_MISSING_KEY,
     PE_NO_SECTIONS,
+    PE_TOO_MANY_OPTIONS,
 };
 
 // --------------------------------------------------------

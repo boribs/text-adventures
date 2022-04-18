@@ -471,6 +471,11 @@ static Option *json_to_option(List *options) {
     if (options->object_count == 0) {
         parse_state = PS_OK;
         return NULL;
+
+    } else if (options->object_count > MAX_OPTION_COUNT) {
+        parse_state = PS_ERROR;
+        parse_error = PE_TOO_MANY_OPTIONS;
+        return NULL;
     }
 
     Option *out = malloc(sizeof(Option) * options->object_count);
