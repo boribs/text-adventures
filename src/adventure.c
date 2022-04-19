@@ -148,7 +148,7 @@ static void print_text(char *text) {
 /*
  * Gets (and shows) the input from the user.
  */
-static enum InputType get_input() {
+static enum InputType get_input(Section *cs) {
     fflush(stdin);
     scanf("%c", &input);
 
@@ -159,7 +159,7 @@ static enum InputType get_input() {
         print_full_border();
         return ADVENTURE_INPUT_QUIT;
 
-    } else if (input > '0' && input < '9') {
+    } else if (input > '0' && input < cs->option_count + '1') {
         printf("%c", input);
         col += 1;
         complete_line(true);
@@ -202,7 +202,7 @@ static bool play_section(Adventure *adv) {
 
     enum InputType input_type;
     do {
-        input_type = get_input();
+        input_type = get_input(adv->current_section);
     } while (input_type == ADVENTURE_INPUT_INVALID);
 
     if (input_type == ADVENTURE_INPUT_QUIT) {
