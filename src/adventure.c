@@ -22,6 +22,10 @@ enum Delimiter {
 
 void show_error_message() {}
 
+/*
+ * Prints the | at the beginning of the row.
+ * To adjust the position, change L_O/L_I_PADDING values.
+ */
 static void print_l_border() {
     for (size_t i = 0; i < L_O_PADDING; ++i) printf(" ");
     printf("|");
@@ -29,6 +33,10 @@ static void print_l_border() {
     col = L_PADDING + 1;
 }
 
+/*
+ * Prints the | at the end of the row.
+ * To adjust the position, change R_O/R_I_PADDING values.
+ */
 static void complete_line(bool nl) {
     size_t const max_col = w.ws_col - R_O_PADDING - 1;
     for (int i = col; i < max_col; ++i) printf(" ");
@@ -36,11 +44,19 @@ static void complete_line(bool nl) {
     if (nl) printf("\n");
 }
 
+/*
+ * Prints a line with | at the beginning and the end of the row,
+ * with whitespace in between.
+ */
 static void print_empty_line() {
     print_l_border();
     complete_line(true);
 }
 
+/*
+ * Prints a line with | at the beginning and the end of the row,
+ * with - in between.
+ */
 static void print_full_border() {
     for (size_t i = 0; i < L_O_PADDING; ++i) printf(" ");
     printf("+");
@@ -50,7 +66,13 @@ static void print_full_border() {
     printf("+\n");
 }
 
-static enum Delimiter get_word(char *dest, size_t *dest_len, char *src, size_t *del_len) {
+/*
+ * Extracts a word form a stream of characters.
+ * Saves the word to a destination (dest) and sets the ammount
+ * of characters to dest_len.
+ * Also sets the size (in bytes) of the delimiter found (del_size).
+ */
+static enum Delimiter get_word(char *dest, size_t *dest_len, char *src, size_t *del_size) {
     char pool[100] = {0};
     *dest_len = 0;
 
@@ -64,7 +86,7 @@ static enum Delimiter get_word(char *dest, size_t *dest_len, char *src, size_t *
         }
 
         if (isutf8whitespace(pool)) {
-            *del_len = i;
+            *del_size = i;
             if (*pool == '\n') {
                 return WT_NEWLINE;
             } else {
@@ -79,6 +101,10 @@ static enum Delimiter get_word(char *dest, size_t *dest_len, char *src, size_t *
     }
 }
 
+/*
+ * Prints some text inside a box.
+ * If possible, splits the paragraph to fit full words.
+ */
 static void print_text(char *text) {
     char word[100] = {0};
     size_t word_len = 0, delimiter_len;
@@ -119,6 +145,9 @@ static void print_text(char *text) {
     complete_line(false);
 }
 
+/*
+ * Gets (and shows) the input from the user.
+ */
 static enum InputType get_input() {
     fflush(stdin);
     scanf("%c", &input);
@@ -143,6 +172,10 @@ static enum InputType get_input() {
     }
 }
 
+/*
+ * Displays current sections's text and options.
+ * Asks for user input and advances to next section.
+ */
 static bool play_section(Adventure *adv) {
     print_text(adv->current_section->text);
     printf("\n");
@@ -189,6 +222,11 @@ static bool play_section(Adventure *adv) {
     return false;
 }
 
+/*
+ * Entry point to play the adventure.
+ * Loads and plays the adventure.
+ * If necessary, displays error.
+ */
 void play_adventure(char *filename) {
     FILE *f = fopen(filename, "r");
 
