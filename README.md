@@ -23,4 +23,8 @@ It reads files that follow this syntax (JSON):
 }
 ```
 
-Check out the [examples](examples)!
+# How to use
+1. Create adv executable (run ```make build```)
+2. Run adv \<filepath>
+
+<!-- Check out the [examples](examples)! -->
