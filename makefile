@@ -5,4 +5,4 @@ test:
 	@./tests/tests.out
 
 build:
-	@gcc adv.c src/parse.c src/adventure.c examples/example.c -o adv
+	@gcc adv.c src/parse.c src/adventure.c -o adv

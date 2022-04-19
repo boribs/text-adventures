@@ -157,6 +157,7 @@ static enum InputType get_input(Section *cs) {
         col += 1;
         complete_line(true);
         print_full_border();
+        printf("\n");
         return ADVENTURE_INPUT_QUIT;
 
     } else if (input > '0' && input < cs->option_count + '1') {
