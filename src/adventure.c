@@ -107,7 +107,7 @@ static enum Delimiter get_word(char *dest, size_t *dest_len, char *src, size_t *
  */
 static void print_text(char *text) {
     char word[100] = {0};
-    size_t word_len = 0, delimiter_len;
+    size_t word_len = 0, delimiter_size;
     size_t const max_col = w.ws_col - R_PADDING - 1;
 
     if (col == 0) {
@@ -116,7 +116,7 @@ static void print_text(char *text) {
 
     enum Delimiter s = WT_BLANK;
     while (*text && s != WT_NONE) {
-        s = get_word(word, &word_len, text, &delimiter_len);
+        s = get_word(word, &word_len, text, &delimiter_size);
 
         if (col + word_len < max_col) {
             printf("%s", word);
@@ -128,7 +128,7 @@ static void print_text(char *text) {
             col += word_len;
         }
 
-        if (col + delimiter_len < max_col) {
+        if (col + 1 < max_col) {
             if (s == WT_NEWLINE) {
                 printf("\n");
                 print_l_border();
@@ -138,7 +138,7 @@ static void print_text(char *text) {
             }
         }
 
-        text += strlen(word) + delimiter_len;
+        text += strlen(word) + delimiter_size;
         memset(word, 0, 100);
     }
 
