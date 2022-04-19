@@ -9,7 +9,6 @@ enum InputType {
 
 char input;
 
-#define KEY_QUIT 'q'
 #define L_O_PADDING 1
 #define R_O_PADDING 1
 #define L_I_PADDING 1
