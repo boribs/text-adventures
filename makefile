@@ -4,8 +4,5 @@ test:
 	@echo Running...
 	@./tests/tests.out
 
-play:
-	@echo Compiling...
-	@gcc src/parse.c src/adventure.c examples/example.c -o play.out
-	@echo Running...
-	@./play.out
+build:
+	@gcc adv.c src/parse.c src/adventure.c examples/example.c -o adv
