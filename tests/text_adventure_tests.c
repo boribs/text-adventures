@@ -199,6 +199,18 @@ static void test_escaped_double_quote(void) {
     );
 }
 
+static void test_escaped_new_line(void) {
+    construct_file_like_obj("{\"this key contains a new line\n\":\"val\"}");
+
+    Object actual = json_parse(stream);
+
+    TEST_ASSERT_NO_ERROR();
+    TEST_ASSERT_EQUAL_STRING(
+        "this key contains a new line\n",
+        actual.relations[0].key.chars
+    );
+}
+
 static void test_escaped_unicode_chars(void) {
     construct_file_like_obj("{\"this key contains escaped unicode: \uc3b6\":\"val\"}");
 
@@ -760,6 +772,7 @@ int main() {
     RUN_TEST(test_invalid_double_quote);
     RUN_TEST(test_invalid_double_colon);
     RUN_TEST(test_invalid_double_colon2);
+    RUN_TEST(test_escaped_new_line);
     RUN_TEST(test_incomplete_string);
     RUN_TEST(test_incomplete_object);
     RUN_TEST(test_relation_with_trailing_comma);

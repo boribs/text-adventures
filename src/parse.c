@@ -141,6 +141,14 @@ static String create_string(FILE *stream) {
                 escape = true;
             }
 
+        } else if (utf8cmp(c.chr, "n") == 0) {
+            if (escape) {
+                charcat(&out, &(utf8char){.chr = "\n", .len = 1});
+                escape = false;
+            } else {
+                charcat(&out, &c);
+            }
+
         } else if (c.len == 0 && *c.chr < 0) {
             parse_state = PS_ERROR;
             parse_error = PE_MISSING_DOUBLE_QUOTES;
